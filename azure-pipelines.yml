@@ -105,18 +105,22 @@ stages:
       condition: and(succeeded(), not(eq(variables['DeployTo'], 'Test')))
       inputs:
         ConnectionType: 'AzureRM'
-        azureSubscription: 'Pay as you go(38adecfa-8752-4938-8e3a-e109b3ef07e0)'
+        azureSubscription: 'Fake API Personal Azure Subscription'
         appType: 'webApp'
         WebAppName: 'fake-api-test'
         packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
+        enableCustomDeployment: true
+        DeploymentType: 'zipDeploy'
 
     - task: AzureRmWebAppDeployment@4
       displayName: Deploy to https://fake-api.azurewebsites.com
       condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
       inputs:
         ConnectionType: 'AzureRM'
-        azureSubscription: 'Pay as you go(38adecfa-8752-4938-8e3a-e109b3ef07e0)'
+        azureSubscription: 'Fake API Personal Azure Subscription'
         appType: 'webApp'
-        WebAppName: 'fake-api-test'
+        WebAppName: 'fake-api'
         packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
+        enableCustomDeployment: true
+        DeploymentType: 'zipDeploy'
 
