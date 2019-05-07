@@ -33,6 +33,16 @@ stages:
     - script: dotnet build --configuration $(buildConfiguration)
       displayName: 'dotnet build $(buildConfiguration)'
 
+    - script: dotnet test --configuration $(buildConfiguration)--no-build
+      displayName: 'dotnet test --configuration $(buildConfiguration) --no-build'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifact
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'FakeApiServer'
+        publishLocation: 'Container'
+
     - script: dotnet tool install --global coverlet.console
       displayName: 'Install coverlet'
 
@@ -48,13 +58,6 @@ stages:
         publishWebProjects: true
         feedsToUse: 'select'
         versioningScheme: 'off'
-
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Artifact
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'FakeApiServer'
-        publishLocation: 'Container'
 
     - script: dotnet tool install -g dotnet-reportgenerator-globaltool
       displayName: 'install reportgenerator'
