@@ -31,8 +31,8 @@ steps:
 - script: dotnet tool install -g dotnet-reportgenerator-globaltool
   displayName: 'install reportgenerator'
 
-- script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:Report -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
-  displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:Report -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
+- script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+  displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
 - task: PublishTestResults@2
   inputs:
@@ -43,5 +43,5 @@ steps:
   displayName: 'Publish code coverage'
   inputs:
     codeCoverageTool: Cobertura
-    summaryFileLocation: '$(Build.SourcesDirectory)/Report/Cobertura.xml'
-    reportDirectory: '$(Build.SourcesDirectory)/Report'
+    summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
+    reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
