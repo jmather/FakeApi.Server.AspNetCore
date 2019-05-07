@@ -115,6 +115,8 @@ jobs:
         steps:
         - task: DownloadPipelineArtifact@0
           inputs:
+            buildType: 'current'
+            specificBuildWithTriggering: true
             artifactName: 'FakeApiServer'
             targetPath: $(System.DefaultWorkingDirectory)
         
