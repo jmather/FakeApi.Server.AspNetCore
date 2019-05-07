@@ -95,12 +95,11 @@ stages:
 
 - stage: DeployTest
   displayName: Deploy To Test
-
+  dependsOn: BuildArtifact
+  condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
   jobs:
   - deployment: DeployTestJob
     displayName: Deploy to Test Job
-    dependsOn: BuildArtifact
-    condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
     environment: Test
     pool:
       vmImage: 'ubuntu-latest'
@@ -117,13 +116,12 @@ stages:
 
 - stage: DeployProd
   displayName: Deploy To Production
-
+  dependsOn: BuildArtifact
+  condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   jobs:
 
   - deployment: DeployProdJob
     displayName: Deploy to Production Job
-    dependsOn: BuildArtifact
-    condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
     environment: Production
     pool:
       vmImage: 'ubuntu-latest'
