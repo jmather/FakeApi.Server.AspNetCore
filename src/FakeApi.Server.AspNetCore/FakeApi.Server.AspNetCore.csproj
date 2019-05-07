@@ -18,4 +18,8 @@
       <ProjectReference Include="..\JMather.RoutingHelpers.AspNetCore\JMather.RoutingHelpers.AspNetCore.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="wwwroot" />
+    </ItemGroup>
+
 </Project>
