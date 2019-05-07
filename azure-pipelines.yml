@@ -6,10 +6,11 @@ trigger:
 - master
 
 stages:
-- stage: Test
+- stage: BuildAndDeploy
+  displayName: Build and Deploy (this isn't right but maybe it'll work at least...)
   jobs:
-  - job: Test
-    displayName: Test
+  - job: Quality
+    displayName: Get Test Coverage and Code Quality
     pool:
       vmImage: 'ubuntu-latest'
     variables:
@@ -21,19 +22,6 @@ stages:
       inputs:
         version: 2.2.103
 
-    - script: dotnet build --configuration $(buildConfiguration)
-      displayName: 'dotnet build $(buildConfiguration)'
-
-    - script: dotnet test --configuration $(buildConfiguration)--no-build
-      displayName: 'dotnet test --configuration $(buildConfiguration) --no-build'
-
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Artifact
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'FakeApiServer'
-        publishLocation: 'Container'
-
     - task: SonarCloudPrepare@1
       inputs:
         SonarCloud: 'Azure'
@@ -44,21 +32,14 @@ stages:
         projectName: '.Net Core Fake API Server'
         projectVersion: '0.1.0'
 
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'dotnet build $(buildConfiguration)'
+
     - script: dotnet tool install --global coverlet.console
       displayName: 'Install coverlet'
 
     - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
       displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
-
-    - task: DotNetCoreCLI@2
-      displayName: Package Artifact
-      inputs:
-        command: 'publish'
-        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-        zipAfterPublish: True
-        publishWebProjects: true
-        feedsToUse: 'select'
-        versioningScheme: 'off'
 
     - script: dotnet tool install -g dotnet-reportgenerator-globaltool
       displayName: 'install reportgenerator'
@@ -82,50 +63,60 @@ stages:
       inputs:
         pollingTimeoutSec: '300'
 
-- stage: DeployTest
-  displayName: Deploy To Test
-  dependsOn: Test
-  condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
-  jobs:
-  - deployment: DeployTestJob
-    displayName: Deploy to Test Job
-    environment: Test
+  - job: BuildTestDeploy
+    displayName: Build for Deployment, Test, and Optionally Deploy (set deployTo = [Test, Production])
     pool:
       vmImage: 'ubuntu-latest'
     variables:
       buildConfiguration: 'Release'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'FakeApiServer'
-              downloadPath: '$(System.ArtifactsDirectory)'
+      deployTo: None
+    steps:
+    # Install the latest version of the dotnet sdk
+    - task: DotNetCoreInstaller@0
+      displayName: 'Use .NET Core sdk 2.2.103'
+      inputs:
+        version: 2.2.103
 
-- stage: DeployProd
-  displayName: Deploy To Production
-  dependsOn: Test
-  condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
-  jobs:
-  - deployment: DeployProdJob
-    displayName: Deploy to Production Job
-    environment: Production
-    pool:
-      vmImage: 'ubuntu-latest'
-    variables:
-      buildConfiguration: 'Release'
-    strategy:
-      runOnce:
-        deploy:
-          ArtifactName: FakeApiServer
-          steps:
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'FakeApiServer'
-              downloadPath: '$(System.ArtifactsDirectory)'
-          
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'dotnet build $(buildConfiguration)'
+
+    - script: dotnet test --configuration $(buildConfiguration)--no-build
+      displayName: 'dotnet test --configuration $(buildConfiguration) --no-build'
+
+    - task: DotNetCoreCLI@2
+      displayName: Package Artifact
+      inputs:
+        command: 'publish'
+        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: True
+        publishWebProjects: true
+        feedsToUse: 'select'
+        versioningScheme: 'off'
+
+    # - task: PublishBuildArtifacts@1
+    #   displayName: Publish Artifact
+    #   inputs:
+    #     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    #     ArtifactName: 'FakeApiServer'
+    #     publishLocation: 'Container'
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: Deploy to https://fake-api-test.azurewebsites.com
+      condition: and(succeeded(), not(eq(variables['DeployTo'], 'Test')))
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Pay as you go(38adecfa-8752-4938-8e3a-e109b3ef07e0)'
+        appType: 'webApp'
+        WebAppName: 'fake-api-test'
+        packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: Deploy to https://fake-api.azurewebsites.com
+      condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Pay as you go(38adecfa-8752-4938-8e3a-e109b3ef07e0)'
+        appType: 'webApp'
+        WebAppName: 'fake-api-test'
+        packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
+
