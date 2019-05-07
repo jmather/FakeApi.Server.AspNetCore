@@ -2,46 +2,83 @@
 # Build and test ASP.NET Core projects targeting .NET Core.
 # Add steps that run tests, create a NuGet package, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+- job: BuildAndTest
+  displayName: Build and Test
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    buildConfiguration: 'Release'
+  steps:
+  # Install the latest version of the dotnet sdk
+  - task: DotNetCoreInstaller@0
+    displayName: 'Use .NET Core sdk 2.2.103'
+    inputs:
+      version: 2.2.103
 
-variables:
-  buildConfiguration: 'Release'
+  - script: dotnet build --configuration $(buildConfiguration)
+    displayName: 'dotnet build $(buildConfiguration)'
 
-steps:
-# Install the latest version of the dotnet sdk
-- task: DotNetCoreInstaller@0
-  displayName: 'Use .NET Core sdk 2.2.103'
-  inputs:
-    version: 2.2.103
+  - script: dotnet tool install --global coverlet.console
+    displayName: 'Install coverlet'
 
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+  - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
+    displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
 
-- script: dotnet tool install --global coverlet.console
-  displayName: 'Install coverlet'
+  - script: dotnet tool install -g dotnet-reportgenerator-globaltool
+    displayName: 'install reportgenerator'
 
-- script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
-  displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
+  - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+    displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
-- script: dotnet tool install -g dotnet-reportgenerator-globaltool
-  displayName: 'install reportgenerator'
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: 'test/**/*.trx'
 
-- script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
-  displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
+  - task: PublishCodeCoverageResults@1
+    displayName: 'Publish code coverage'
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
+      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
 
-- task: PublishTestResults@2
-  inputs:
-    testRunner: VSTest
-    testResultsFiles: 'test/**/*.trx'
+  - task: DotNetCoreCLI@2
+    displayName: Publish Artifact
+    inputs:
+      command: 'publish'
+      publishWebProjects: true
+      feedsToUse: 'select'
+      versioningScheme: 'off'
 
-- task: PublishCodeCoverageResults@1
-  displayName: 'Publish code coverage'
-  inputs:
-    codeCoverageTool: Cobertura
-    summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
-    reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+- deployment: DeployTest
+  displayName: Deploy to Test
+  dependsOn: BuildAndTest
+  condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    buildConfiguration: 'Release'
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - script: echo Hi!
+
+- deployment: DeployProd
+  displayName: Deploy to Production
+  dependsOn: BuildAndTest
+  condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    buildConfiguration: 'Release'
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - script: echo Hi!
+        
