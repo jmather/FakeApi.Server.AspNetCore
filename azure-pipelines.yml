@@ -46,8 +46,9 @@ jobs:
       summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
 #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
 
-- job: Build
-  displayName: Build
+- job: BuildArtifact
+  displayName: Build Deployment Artifact
+  dependsOn: Test
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -82,9 +83,7 @@ jobs:
 
 - deployment: DeployTest
   displayName: Deploy to Test
-  dependsOn:
-  - Build
-  - Test
+  dependsOn: BuildArtifact
   condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
   environment: Test
   pool:
@@ -100,9 +99,7 @@ jobs:
 
 - deployment: DeployProd
   displayName: Deploy to Production
-  dependsOn:
-  - Build
-  - Test
+  dependsOn: BuildArtifact
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   environment: Production
   pool:
