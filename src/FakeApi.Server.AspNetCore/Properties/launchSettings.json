@@ -11,8 +11,7 @@
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "api/values",
+      "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -20,7 +19,6 @@
     "FakeApi.Server.AspNetCore": {
       "commandName": "Project",
       "launchBrowser": false,
-      "launchUrl": "api/values",
       "applicationUrl": "https://localhost:3001;http://localhost:3000",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

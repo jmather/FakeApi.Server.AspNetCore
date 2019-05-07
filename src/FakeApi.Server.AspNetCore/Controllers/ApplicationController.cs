@@ -15,7 +15,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
     {
         private string _requestBody = null;
         
-        public ApplicationController(UserManager userManager) : base(userManager)
+        public ApplicationController(IUserManager userManager) : base(userManager)
         {
         }
         
