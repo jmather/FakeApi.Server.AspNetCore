@@ -48,7 +48,6 @@ jobs:
 
 - job: BuildArtifact
   displayName: Build Deployment Artifact
-  dependsOn: Test
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -94,9 +93,11 @@ jobs:
   strategy:
     runOnce:
       deploy:
-        ArtifactName: FakeApiServer
         steps:
-        - script: echo Hi!
+        - task: DownloadPipelineArtifact@0
+          inputs:
+            artifactName: 'FakeApiServer'
+            targetPath: $(System.DefaultWorkingDirectory)
 
 - deployment: DeployProd
   displayName: Deploy to Production
@@ -112,5 +113,8 @@ jobs:
       deploy:
         ArtifactName: FakeApiServer
         steps:
-        - script: echo Hi!
+        - task: DownloadPipelineArtifact@0
+          inputs:
+            artifactName: 'FakeApiServer'
+            targetPath: $(System.DefaultWorkingDirectory)
         
