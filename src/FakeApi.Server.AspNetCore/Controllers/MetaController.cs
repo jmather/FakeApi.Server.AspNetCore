@@ -9,12 +9,14 @@ namespace FakeApi.Server.AspNetCore.Controllers
     [ApiController]
     public class MetaController : FakeApiControllerBase
     {
-        public MetaController(UserManager userManager) : base(userManager)
+        public const string FakeApiActionHeader = "X-FakeApi-Action";
+        
+        public MetaController(IUserManager userManager) : base(userManager)
         {
         }
         
         [HttpPost("/")]
-        [RequiredHeader(name: "X-FakeApi-Action", allowedValue: nameof(FakeApiAction.Register))]
+        [RequiredHeader(name: FakeApiActionHeader, allowedValue: nameof(FakeApiAction.Register))]
         public IActionResult Register([FromBody] UserInfo userInfo)
         {
             if (userInfo == null)
@@ -28,7 +30,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
         }
 
         [HttpPut("/")]
-        [RequiredHeader(name: "X-FakeApi-Action", allowedValue: nameof(FakeApiAction.Record))]
+        [RequiredHeader(name: FakeApiActionHeader, allowedValue: nameof(FakeApiAction.Record))]
         public IActionResult Record([FromBody] Endpoint endpoint)
         {
             if (endpoint == null)

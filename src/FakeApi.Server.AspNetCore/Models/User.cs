@@ -19,7 +19,7 @@ namespace FakeApi.Server.AspNetCore.Models
             {
                 var raw = $"{Username}:{Password}";
                 var bytes = System.Text.Encoding.ASCII.GetBytes(raw);
-                return System.Convert.ToBase64String(bytes);
+                return Convert.ToBase64String(bytes);
             }
         }
 

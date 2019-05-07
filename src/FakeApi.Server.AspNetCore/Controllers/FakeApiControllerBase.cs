@@ -1,18 +1,18 @@
+using System;
 using System.Linq;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 
 namespace FakeApi.Server.AspNetCore.Controllers
 {
     public abstract class FakeApiControllerBase : ControllerBase
     {
-        private const string AuthorizationHeader = "authorization";
+        public const string AuthorizationHeader = "Authorization";
         
-        protected readonly UserManager UserManager;
+        protected readonly IUserManager UserManager;
 
-        protected FakeApiControllerBase(UserManager userManager)
+        protected FakeApiControllerBase(IUserManager userManager)
         {
             UserManager = userManager;
         }
@@ -39,7 +39,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
         protected AuthenticationRequest GetAuthenticationRequest()
         {
             var authHeaderValue = HttpContext.Request.Headers
-                .Where(h => h.Key.ToLower() == AuthorizationHeader)
+                .Where(h => string.Equals(h.Key, AuthorizationHeader, StringComparison.OrdinalIgnoreCase))
                 .Select(h => h.Value.ToString())
                 .FirstOrDefault();
 

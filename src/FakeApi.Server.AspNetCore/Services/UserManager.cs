@@ -5,7 +5,13 @@ using FakeApi.Server.AspNetCore.Models;
 
 namespace FakeApi.Server.AspNetCore.Services
 {
-    public class UserManager
+    public interface IUserManager
+    {
+        User Register(UserInfo userInfo);
+        User GetUser(string username);
+    }
+
+    public class UserManager : IUserManager
     {
         private readonly ConcurrentDictionary<string, User> _users = new ConcurrentDictionary<string, User>();
 

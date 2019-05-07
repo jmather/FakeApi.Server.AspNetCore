@@ -4,6 +4,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeApi.Server.AspNetCore",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JMather.RoutingHelpers.AspNetCore", "src\JMather.RoutingHelpers.AspNetCore\JMather.RoutingHelpers.AspNetCore.csproj", "{B997577A-74A2-4860-8EBB-E31CF1B75E2F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3A1672C8-9108-4F10-8ACC-554CFB947CE5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{A703A4FC-26EB-4F9D-A4B6-D92CEF57A42C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeApi.Server.AspNetCore.Test", "test\FakeApi.Server.AspNetCore.Test\FakeApi.Server.AspNetCore.Test.csproj", "{6A790058-6E63-4058-B49F-5E606292B645}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +24,14 @@ Global
 		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A790058-6E63-4058-B49F-5E606292B645}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A790058-6E63-4058-B49F-5E606292B645}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A790058-6E63-4058-B49F-5E606292B645}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A790058-6E63-4058-B49F-5E606292B645}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D} = {3A1672C8-9108-4F10-8ACC-554CFB947CE5}
+		{B997577A-74A2-4860-8EBB-E31CF1B75E2F} = {3A1672C8-9108-4F10-8ACC-554CFB947CE5}
+		{6A790058-6E63-4058-B49F-5E606292B645} = {A703A4FC-26EB-4F9D-A4B6-D92CEF57A42C}
 	EndGlobalSection
 EndGlobal

@@ -1,17 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Extensions;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
-using JMather.RoutingHelpers.AspNetCore.Annotations;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using Endpoint = FakeApi.Server.AspNetCore.Models.Endpoint;
 
 namespace FakeApi.Server.AspNetCore.Controllers
