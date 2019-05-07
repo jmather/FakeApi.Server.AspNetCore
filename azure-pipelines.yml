@@ -19,6 +19,15 @@ jobs:
     inputs:
       version: 2.2.103
 
+  - task: SonarCloudPrepare@1
+    inputs:
+      SonarCloud: 'Azure'
+      organization: 'jmather-github'
+      scannerMode: 'MSBuild'
+      projectKey: 'jmather_FakeApi.Server.AspNetCore'
+      projectName: '.Net Core Fake API Server'
+      projectVersion: '0.1.0'
+
   - script: dotnet build --configuration $(buildConfiguration)
     displayName: 'dotnet build $(buildConfiguration)'
 
@@ -45,7 +54,10 @@ jobs:
       codeCoverageTool: Cobertura
       summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
 #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
-
+  - task: SonarCloudPublish@1
+    inputs:
+      pollingTimeoutSec: '300'
+      
 - job: BuildArtifact
   displayName: Build Deployment Artifact
   pool:
