@@ -3,72 +3,74 @@
 # Add steps that run tests, create a NuGet package, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 trigger:
-- master
+  - master
 
 variables:
   buildConfiguration: 'Release'
 
 stages:
-- stage: BuildAndDeploy
-  displayName: Everything
-  jobs:
-  - job: Quality
-    displayName: Get Test Coverage and Code Quality
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    # Install the latest version of the dotnet sdk
-    - task: DotNetCoreInstaller@0
-      displayName: 'Use .NET Core sdk 2.2.103'
-      inputs:
-        version: 2.2.103
+  - stage: BuildAndDeploy
+    displayName: Everything
+    jobs:
+      - job: Quality
+        displayName: Get Test Coverage and Code Quality
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          # Install the latest version of the dotnet sdk
+          - task: DotNetCoreInstaller@0
+            displayName: 'Use .NET Core sdk 2.2.103'
+            inputs:
+              version: 2.2.103
 
 
-    - task: SonarCloudPrepare@1
-      inputs:
-        SonarCloud: 'Azure'
-        organization: 'jmather-github'
-        scannerMode: 'CLI'
-        configMode: file
-        configFile: sonar-project.properties
-        cliProjectVersion: '$(Build.BuildNumber)'
-        # projectVersion: '$(Build.BuildNumber)'
+          - task: SonarCloudPrepare@1
+            inputs:
+              SonarCloud: 'Azure'
+              organization: 'jmather-github'
+              scannerMode: 'CLI'
+              configMode: file
+              configFile: sonar-project.properties
+              cliProjectVersion: '$(Build.BuildNumber)'
+              extraProperties: |
+                sonar.branch.name="$(Build.SourceBranchName)"
+              # projectVersion: '$(Build.BuildNumber)'
 
-    - script: dotnet build --configuration $(buildConfiguration)
-      displayName: 'dotnet build $(buildConfiguration)'
+          - script: dotnet build --configuration $(buildConfiguration)
+            displayName: 'dotnet build $(buildConfiguration)'
 
-    - script: dotnet tool install --global coverlet.console
-      displayName: 'Install coverlet'
+          - script: dotnet tool install --global coverlet.console
+            displayName: 'Install coverlet'
 
-    - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
-      displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
+          - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
+            displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
 
-    - script: dotnet tool install -g dotnet-reportgenerator-globaltool
-      displayName: 'install reportgenerator'
+          - script: dotnet tool install -g dotnet-reportgenerator-globaltool
+            displayName: 'install reportgenerator'
 
-    - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"
-      displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"'
+          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"
+            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"'
 
-    - task: PublishTestResults@2
-      inputs:
-        testRunner: VSTest
-        testResultsFiles: 'test/**/*.trx'
+          - task: PublishTestResults@2
+            inputs:
+              testRunner: VSTest
+              testResultsFiles: 'test/**/*.trx'
 
-    - task: PublishCodeCoverageResults@1
-      displayName: 'Publish code coverage'
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
-  #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+          - task: PublishCodeCoverageResults@1
+            displayName: 'Publish code coverage'
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
+          #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
 
-    - task: SonarCloudAnalyze@1
-      displayName: 'Run Code Analysis'
-      # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
-      continueOnError: true
+          - task: SonarCloudAnalyze@1
+            displayName: 'Run Code Analysis'
+            # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
+            continueOnError: true
 
-    - task: SonarCloudPublish@1
-      inputs:
-        pollingTimeoutSec: '300'
+          - task: SonarCloudPublish@1
+            inputs:
+              pollingTimeoutSec: '300'
 
 #  - job: BuildTestDeploy
 #    displayName: Build for Deployment, Test, and Optionally Deploy (set deployTo = [Test, Production])
