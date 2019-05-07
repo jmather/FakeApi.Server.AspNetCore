@@ -5,130 +5,139 @@
 trigger:
 - master
 
-jobs:
-- job: Test
-  displayName: Test
-  pool:
-    vmImage: 'ubuntu-latest'
-  variables:
-    buildConfiguration: 'Release'
-  steps:
-  # Install the latest version of the dotnet sdk
-  - task: DotNetCoreInstaller@0
-    displayName: 'Use .NET Core sdk 2.2.103'
-    inputs:
-      version: 2.2.103
+stages:
+- stage: Test
+  jobs:
+  - job: Test
+    displayName: Test
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      buildConfiguration: 'Release'
+    steps:
+    # Install the latest version of the dotnet sdk
+    - task: DotNetCoreInstaller@0
+      displayName: 'Use .NET Core sdk 2.2.103'
+      inputs:
+        version: 2.2.103
 
-  - task: SonarCloudPrepare@1
-    inputs:
-      SonarCloud: 'Azure'
-      organization: 'jmather-github'
-      scannerMode: 'MSBuild'
-      projectKey: 'jmather_FakeApi.Server.AspNetCore'
-      projectName: '.Net Core Fake API Server'
-      projectVersion: '0.1.0'
+    - task: SonarCloudPrepare@1
+      inputs:
+        SonarCloud: 'Azure'
+        organization: 'jmather-github'
+        scannerMode: 'MSBuild'
+        projectKey: 'jmather_FakeApi.Server.AspNetCore'
+        projectName: '.Net Core Fake API Server'
+        projectVersion: '0.1.0'
 
-  - script: dotnet build --configuration $(buildConfiguration)
-    displayName: 'dotnet build $(buildConfiguration)'
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'dotnet build $(buildConfiguration)'
 
-  - script: dotnet tool install --global coverlet.console
-    displayName: 'Install coverlet'
+    - script: dotnet tool install --global coverlet.console
+      displayName: 'Install coverlet'
 
-  - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
-    displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
+    - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
+      displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
 
-  - script: dotnet tool install -g dotnet-reportgenerator-globaltool
-    displayName: 'install reportgenerator'
+    - script: dotnet tool install -g dotnet-reportgenerator-globaltool
+      displayName: 'install reportgenerator'
 
-  - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
-    displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
+    - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+      displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
-  - task: PublishTestResults@2
-    inputs:
-      testRunner: VSTest
-      testResultsFiles: 'test/**/*.trx'
+    - task: PublishTestResults@2
+      inputs:
+        testRunner: VSTest
+        testResultsFiles: 'test/**/*.trx'
 
-  - task: PublishCodeCoverageResults@1
-    displayName: 'Publish code coverage'
-    inputs:
-      codeCoverageTool: Cobertura
-      summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
-#      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
-  - task: SonarCloudPublish@1
-    inputs:
-      pollingTimeoutSec: '300'
-      
-- job: BuildArtifact
-  displayName: Build Deployment Artifact
-  pool:
-    vmImage: 'ubuntu-latest'
-  variables:
-    buildConfiguration: 'Release'
-  steps:
-  # Install the latest version of the dotnet sdk
-  - task: DotNetCoreInstaller@0
-    displayName: 'Use .NET Core sdk 2.2.103'
-    inputs:
-      version: 2.2.103
-
-  - script: dotnet build --configuration $(buildConfiguration)
-    displayName: 'dotnet build $(buildConfiguration)'
-
-  - task: DotNetCoreCLI@2
-    displayName: Package Artifact
-    inputs:
-      command: 'publish'
-      arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-      zipAfterPublish: True
-      publishWebProjects: true
-      feedsToUse: 'select'
-      versioningScheme: 'off'
-
-  - task: PublishBuildArtifacts@1
-    displayName: Publish Artifact
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      ArtifactName: 'FakeApiServer'
-      publishLocation: 'Container'
-
-  
-
-- deployment: DeployTest
-  displayName: Deploy to Test
-  dependsOn: BuildArtifact
-  condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
-  environment: Test
-  pool:
-    vmImage: 'ubuntu-latest'
-  variables:
-    buildConfiguration: 'Release'
-  strategy:
-    runOnce:
-      deploy:
-        steps:
-        - task: DownloadPipelineArtifact@0
-          inputs:
-            artifactName: 'FakeApiServer'
-            targetPath: $(System.DefaultWorkingDirectory)
-
-- deployment: DeployProd
-  displayName: Deploy to Production
-  dependsOn: BuildArtifact
-  condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
-  environment: Production
-  pool:
-    vmImage: 'ubuntu-latest'
-  variables:
-    buildConfiguration: 'Release'
-  strategy:
-    runOnce:
-      deploy:
-        ArtifactName: FakeApiServer
-        steps:
-        - task: DownloadPipelineArtifact@0
-          inputs:
-            buildType: 'current'
-            specificBuildWithTriggering: true
-            artifactName: 'FakeApiServer'
-            targetPath: $(System.DefaultWorkingDirectory)
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish code coverage'
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
+  #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+    - task: SonarCloudPublish@1
+      inputs:
+        pollingTimeoutSec: '300'
         
+  - job: BuildArtifact
+    displayName: Build Deployment Artifact
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      buildConfiguration: 'Release'
+    steps:
+    # Install the latest version of the dotnet sdk
+    - task: DotNetCoreInstaller@0
+      displayName: 'Use .NET Core sdk 2.2.103'
+      inputs:
+        version: 2.2.103
+
+    - script: dotnet build --configuration $(buildConfiguration)
+      displayName: 'dotnet build $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: Package Artifact
+      inputs:
+        command: 'publish'
+        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: True
+        publishWebProjects: true
+        feedsToUse: 'select'
+        versioningScheme: 'off'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Artifact
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'FakeApiServer'
+        publishLocation: 'Container'
+
+- stage: DeployTest
+  displayName: Deploy To Test
+
+  jobs:
+  - deployment: DeployTestJob
+    displayName: Deploy to Test Job
+    dependsOn: BuildArtifact
+    condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
+    environment: Test
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      buildConfiguration: 'Release'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              artifactName: 'FakeApiServer'
+              targetPath: $(System.DefaultWorkingDirectory)
+
+- stage: DeployProd
+  displayName: Deploy To Production
+
+  jobs:
+
+  - deployment: DeployProdJob
+    displayName: Deploy to Production Job
+    dependsOn: BuildArtifact
+    condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
+    environment: Production
+    pool:
+      vmImage: 'ubuntu-latest'
+    variables:
+      buildConfiguration: 'Release'
+    strategy:
+      runOnce:
+        deploy:
+          ArtifactName: FakeApiServer
+          steps:
+          - task: DownloadPipelineArtifact@0
+            inputs:
+              buildType: 'current'
+              specificBuildWithTriggering: true
+              artifactName: 'FakeApiServer'
+              targetPath: $(System.DefaultWorkingDirectory)
+          
