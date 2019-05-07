@@ -67,7 +67,8 @@ jobs:
     displayName: Package Artifact
     inputs:
       command: 'publish'
-      configuration: $(buildConfiguration)
+      arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+      zipAfterPublish: True
       publishWebProjects: true
       feedsToUse: 'select'
       versioningScheme: 'off'
