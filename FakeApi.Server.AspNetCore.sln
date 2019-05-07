@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeApi.Server.AspNetCore", "src\FakeApi.Server.AspNetCore\FakeApi.Server.AspNetCore.csproj", "{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JMather.RoutingHelpers.AspNetCore", "src\JMather.RoutingHelpers.AspNetCore\JMather.RoutingHelpers.AspNetCore.csproj", "{B997577A-74A2-4860-8EBB-E31CF1B75E2F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FFA5DE4-4384-479A-9C8F-3A68FB10A42D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B997577A-74A2-4860-8EBB-E31CF1B75E2F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
