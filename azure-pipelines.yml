@@ -58,6 +58,7 @@ jobs:
   displayName: Deploy to Test
   dependsOn: BuildAndTest
   condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
+  environment: Test
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -72,6 +73,7 @@ jobs:
   displayName: Deploy to Production
   dependsOn: BuildAndTest
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
+  environment: Production
   pool:
     vmImage: 'ubuntu-latest'
   variables:
