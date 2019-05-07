@@ -10,7 +10,7 @@ variables:
 
 stages:
 - stage: BuildAndDeploy
-  displayName: Build and Deploy (this isn't right but maybe it'll work at least...)
+  displayName: Everything
   jobs:
   - job: Quality
     displayName: Get Test Coverage and Code Quality
@@ -84,7 +84,7 @@ stages:
     - script: dotnet build --configuration $(buildConfiguration)
       displayName: 'dotnet build $(buildConfiguration)'
 
-    - script: dotnet test --configuration $(buildConfiguration)--no-build
+    - script: dotnet test --configuration $(buildConfiguration) --no-build
       displayName: 'dotnet test --configuration $(buildConfiguration) --no-build'
 
     - task: DotNetCoreCLI@2
