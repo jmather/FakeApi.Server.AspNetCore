@@ -5,6 +5,9 @@
 trigger:
 - master
 
+variables:
+  buildConfiguration: 'Release'
+
 stages:
 - stage: BuildAndDeploy
   displayName: Build and Deploy (this isn't right but maybe it'll work at least...)
@@ -13,8 +16,6 @@ stages:
     displayName: Get Test Coverage and Code Quality
     pool:
       vmImage: 'ubuntu-latest'
-    variables:
-      buildConfiguration: 'Release'
     steps:
     # Install the latest version of the dotnet sdk
     - task: DotNetCoreInstaller@0
@@ -28,9 +29,13 @@ stages:
         organization: 'jmather-github'
         scannerMode: 'CLI'
         configMode: manual
-        projectKey: 'jmather_FakeApi.Server.AspNetCore'
-        projectName: '.Net Core Fake API Server'
-        projectVersion: '0.1.0'
+        cliProjectKey: 'jmather_FakeApi.Server.AspNetCore'
+        cliProjectVersion: '0.1.0'
+        cliProjectName: '.Net Core Fake API Server'
+        cliSources: 'src/'
+        # projectKey: 'jmather_FakeApi.Server.AspNetCore'
+        # projectName: '.Net Core Fake API Server'
+        # projectVersion: '0.1.0'
 
     - script: dotnet build --configuration $(buildConfiguration)
       displayName: 'dotnet build $(buildConfiguration)'
@@ -68,7 +73,6 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     variables:
-      buildConfiguration: 'Release'
       deployTo: None
     steps:
     # Install the latest version of the dotnet sdk
