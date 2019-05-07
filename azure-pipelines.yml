@@ -6,8 +6,8 @@ trigger:
 - master
 
 jobs:
-- job: BuildAndTest
-  displayName: Build and Test
+- job: Test
+  displayName: Test
   pool:
     vmImage: 'ubuntu-latest'
   variables:
@@ -44,19 +44,38 @@ jobs:
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
-      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+#      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+
+- job: Build
+  displayName: Build
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    buildConfiguration: 'Release'
+  steps:
+  # Install the latest version of the dotnet sdk
+  - task: DotNetCoreInstaller@0
+    displayName: 'Use .NET Core sdk 2.2.103'
+    inputs:
+      version: 2.2.103
+
+  - script: dotnet build --configuration $(buildConfiguration)
+    displayName: 'dotnet build $(buildConfiguration)'
 
   - task: DotNetCoreCLI@2
     displayName: Publish Artifact
     inputs:
       command: 'publish'
+      configuration: $(buildConfiguration)
       publishWebProjects: true
       feedsToUse: 'select'
       versioningScheme: 'off'
 
 - deployment: DeployTest
   displayName: Deploy to Test
-  dependsOn: BuildAndTest
+  dependsOn:
+  - Build
+  - BuildAndTest
   condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
   environment: Test
   pool:
@@ -71,7 +90,9 @@ jobs:
 
 - deployment: DeployProd
   displayName: Deploy to Production
-  dependsOn: BuildAndTest
+  dependsOn:
+  - Build
+  - BuildAndTest
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   environment: Production
   pool:
