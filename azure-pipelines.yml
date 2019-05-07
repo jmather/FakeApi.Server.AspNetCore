@@ -94,17 +94,18 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: DownloadPipelineArtifact@0
+          - task: DownloadBuildArtifacts@0
             inputs:
+              buildType: 'current'
+              downloadType: 'single'
               artifactName: 'FakeApiServer'
-              targetPath: $(System.DefaultWorkingDirectory)
+              downloadPath: '$(System.ArtifactsDirectory)'
 
 - stage: DeployProd
   displayName: Deploy To Production
   dependsOn: Test
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   jobs:
-
   - deployment: DeployProdJob
     displayName: Deploy to Production Job
     environment: Production
@@ -117,10 +118,10 @@ stages:
         deploy:
           ArtifactName: FakeApiServer
           steps:
-          - task: DownloadPipelineArtifact@0
+          - task: DownloadBuildArtifacts@0
             inputs:
               buildType: 'current'
-              specificBuildWithTriggering: true
+              downloadType: 'single'
               artifactName: 'FakeApiServer'
-              targetPath: $(System.DefaultWorkingDirectory)
+              downloadPath: '$(System.ArtifactsDirectory)'
           
