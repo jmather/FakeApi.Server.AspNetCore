@@ -106,25 +106,25 @@ stages:
 
     - task: AzureRmWebAppDeployment@4
       displayName: Deploy to https://fake-api-test.azurewebsites.com
-      condition: and(succeeded(), not(eq(variables['DeployTo'], 'Test')))
-      inputs:
-        ConnectionType: 'AzureRM'
-        azureSubscription: 'Fake API Personal Azure Subscription'
-        appType: 'webApp'
-        WebAppName: 'fake-api-test'
-        packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
-        enableCustomDeployment: true
-        DeploymentType: 'zipDeploy'
-
-    - task: AzureRmWebAppDeployment@4
-      displayName: Deploy to https://fake-api.azurewebsites.com
       condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
       inputs:
         ConnectionType: 'AzureRM'
         azureSubscription: 'Fake API Personal Azure Subscription'
         appType: 'webApp'
+        WebAppName: 'fake-api-test'
+        Package: $(System.ArtifactsDirectory)/**/*.zip
+        enableCustomDeployment: true
+        DeploymentType: 'zipDeploy'
+
+    - task: AzureRmWebAppDeployment@4
+      displayName: Deploy to https://fake-api.azurewebsites.com
+      condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Fake API Personal Azure Subscription'
+        appType: 'webApp'
         WebAppName: 'fake-api'
-        packageForLinux: '$(Build.ArtifactStagingDirectory)/*.zip'
+        Package: $(System.ArtifactsDirectory)/**/*.zip
         enableCustomDeployment: true
         DeploymentType: 'zipDeploy'
 
