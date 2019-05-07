@@ -59,7 +59,9 @@ stages:
     - task: SonarCloudPublish@1
       inputs:
         pollingTimeoutSec: '300'
-        
+
+- stage: Build
+  jobs:
   - job: BuildArtifact
     displayName: Build Deployment Artifact
     pool:
@@ -75,6 +77,9 @@ stages:
 
     - script: dotnet build --configuration $(buildConfiguration)
       displayName: 'dotnet build $(buildConfiguration)'
+
+    - script: dotnet test --configuration $(buildConfiguration)
+      displayName: 'dotnet test --configuration $(buildConfiguration)'
 
     - task: DotNetCoreCLI@2
       displayName: Package Artifact
@@ -95,7 +100,7 @@ stages:
 
 - stage: DeployTest
   displayName: Deploy To Test
-  dependsOn: Test
+  dependsOn: Build
   condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
   jobs:
   - deployment: DeployTestJob
@@ -116,7 +121,7 @@ stages:
 
 - stage: DeployProd
   displayName: Deploy To Production
-  dependsOn: Test
+  dependsOn: Build
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   jobs:
 
