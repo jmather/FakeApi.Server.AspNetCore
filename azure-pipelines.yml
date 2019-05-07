@@ -63,13 +63,22 @@ jobs:
     displayName: 'dotnet build $(buildConfiguration)'
 
   - task: DotNetCoreCLI@2
-    displayName: Publish Artifact
+    displayName: Package Artifact
     inputs:
       command: 'publish'
       configuration: $(buildConfiguration)
       publishWebProjects: true
       feedsToUse: 'select'
       versioningScheme: 'off'
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish Artifact
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'FakeApiServer'
+      publishLocation: 'Container'
+
+  
 
 - deployment: DeployTest
   displayName: Deploy to Test
@@ -85,6 +94,7 @@ jobs:
   strategy:
     runOnce:
       deploy:
+        ArtifactName: FakeApiServer
         steps:
         - script: echo Hi!
 
@@ -102,6 +112,7 @@ jobs:
   strategy:
     runOnce:
       deploy:
+        ArtifactName: FakeApiServer
         steps:
         - script: echo Hi!
         
