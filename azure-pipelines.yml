@@ -75,7 +75,7 @@ jobs:
   displayName: Deploy to Test
   dependsOn:
   - Build
-  - BuildAndTest
+  - Test
   condition: and(succeeded(), not(eq(variables['build.sourceBranch'], 'refs/heads/master')))
   environment: Test
   pool:
@@ -92,7 +92,7 @@ jobs:
   displayName: Deploy to Production
   dependsOn:
   - Build
-  - BuildAndTest
+  - Test
   condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/master'))
   environment: Production
   pool:
