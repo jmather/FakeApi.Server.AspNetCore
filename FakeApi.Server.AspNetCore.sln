@@ -13,6 +13,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution Files", "{DBF228B9-EE1A-40A1-B396-6AABB9EB6629}"
 ProjectSection(SolutionItems) = preProject
 	azure-pipelines.yml = azure-pipelines.yml
+	sonar-project.properties = sonar-project.properties
 EndProjectSection
 EndProject
 Global
