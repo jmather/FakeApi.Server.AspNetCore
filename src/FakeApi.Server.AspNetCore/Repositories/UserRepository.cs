@@ -127,7 +127,7 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
             public TimeSpan MaxInactivity { get; set; } = TimeSpan.FromHours(2);
 
-            public Func<string> GuidGenerator = () => Guid.NewGuid().ToString();
+            public Func<string> GuidGenerator { get; set; } = () => Guid.NewGuid().ToString();
         }
     }
 }
