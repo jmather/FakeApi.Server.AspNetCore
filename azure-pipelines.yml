@@ -10,7 +10,7 @@ variables:
 
 stages:
   - stage: BuildAndDeploy
-    displayName: Everything
+    displayName: Test
     jobs:
       - job: Quality
         displayName: Get Test Coverage and Code Quality
@@ -96,67 +96,78 @@ stages:
             # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
             continueOnError: true
 
-#          - task: SonarCloudPublish@1
-#            inputs:
-#              pollingTimeoutSec: '300'
+          - task: DotNetCoreCLI@2
+            displayName: Package Artifact
+            inputs:
+              command: 'publish'
+              arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+              zipAfterPublish: True
+              publishWebProjects: true
+              feedsToUse: 'select'
+              versioningScheme: 'off'
 
-#  - job: BuildTestDeploy
-#    displayName: Build for Deployment, Test, and Optionally Deploy (set deployTo = [Test, Production])
-#    pool:
-#      vmImage: 'ubuntu-latest'
-#    variables:
-#      deployTo: None
-#    steps:
-#    # Install the latest version of the dotnet sdk
-#    - task: DotNetCoreInstaller@0
-#      displayName: 'Use .NET Core sdk 2.2.103'
-#      inputs:
-#        version: 2.2.103
-#
-#    - script: dotnet build --configuration $(buildConfiguration)
-#      displayName: 'dotnet build $(buildConfiguration)'
-#
-#    - script: dotnet test --configuration $(buildConfiguration) --no-build
-#      displayName: 'dotnet test --configuration $(buildConfiguration) --no-build'
-#
-#    - task: DotNetCoreCLI@2
-#      displayName: Package Artifact
-#      inputs:
-#        command: 'publish'
-#        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-#        zipAfterPublish: True
-#        publishWebProjects: true
-#        feedsToUse: 'select'
-#        versioningScheme: 'off'
-#
-#    # - task: PublishBuildArtifacts@1
-#    #   displayName: Publish Artifact
-#    #   inputs:
-#    #     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-#    #     ArtifactName: 'FakeApiServer'
-#    #     publishLocation: 'Container'
-#
-#    - task: AzureRmWebAppDeployment@4
-#      displayName: Deploy to https://fake-api-test.azurewebsites.com
-#      condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
-#      inputs:
-#        ConnectionType: 'AzureRM'
-#        azureSubscription: 'Fake API Personal Azure Subscription'
-#        appType: 'webApp'
-#        WebAppName: 'fake-api-test'
-#        Package: $(System.ArtifactsDirectory)/**/*.zip
-#        enableCustomDeployment: true
-#        DeploymentType: 'zipDeploy'
-#
-#    - task: AzureRmWebAppDeployment@4
-#      displayName: Deploy to https://fake-api.azurewebsites.com
-#      condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
-#      inputs:
-#        ConnectionType: 'AzureRM'
-#        azureSubscription: 'Fake API Personal Azure Subscription'
-#        appType: 'webApp'
-#        WebAppName: 'fake-api'
-#        Package: $(System.ArtifactsDirectory)/**/*.zip
-#        enableCustomDeployment: true
-#        DeploymentType: 'zipDeploy'
-#
+          - task: PublishBuildArtifacts@1
+            displayName: Publish Artifact
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'FakeApiServer'
+              publishLocation: 'Container'
+
+  - stage: DeployTest
+    dependsOn: BuildAndDeploy
+    condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
+    displayName: Deploy
+    jobs:
+    - job: DeployToTest
+      pool:
+        vmImage: 'ubuntu-latest'
+      variables:
+        deployTo: None
+      steps:
+      - task: DownloadBuildArtifacts@0
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'FakeApiServer'
+          downloadPath: '$(System.ArtifactsDirectory)'
+
+      - task: AzureRmWebAppDeployment@4
+        displayName: Deploy to https://fake-api-test.azurewebsites.com
+        inputs:
+          ConnectionType: 'AzureRM'
+          azureSubscription: 'Fake API Personal Azure Subscription'
+          appType: 'webApp'
+          WebAppName: 'fake-api-test'
+          Package: $(System.ArtifactsDirectory)/**/*.zip
+          enableCustomDeployment: true
+          DeploymentType: 'zipDeploy'
+
+  - stage: DeployProd
+    dependsOn: BuildAndDeploy
+    condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
+    displayName: DeployProd
+    jobs:
+    - job: DeployToProd
+      pool:
+        vmImage: 'ubuntu-latest'
+      variables:
+        deployTo: None
+      steps:
+      - task: DownloadBuildArtifacts@0
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          artifactName: 'FakeApiServer'
+          downloadPath: '$(System.ArtifactsDirectory)'
+
+      - task: AzureRmWebAppDeployment@4
+        displayName: Deploy to https://fake-api.azurewebsites.com
+        inputs:
+          ConnectionType: 'AzureRM'
+          azureSubscription: 'Fake API Personal Azure Subscription'
+          appType: 'webApp'
+          WebAppName: 'fake-api'
+          Package: $(System.ArtifactsDirectory)/**/*.zip
+          enableCustomDeployment: true
+          DeploymentType: 'zipDeploy'
+
