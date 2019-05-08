@@ -23,33 +23,32 @@ stages:
             inputs:
               version: 2.2.103
 
+          - script: dotnet tool install --global coverlet.console
+            displayName: 'Install coverlet'
+
+          - script: dotnet tool install -g dotnet-reportgenerator-globaltool
+            displayName: 'install reportgenerator'
 
           - task: SonarCloudPrepare@1
             inputs:
               SonarCloud: 'Azure'
               organization: 'jmather-github'
-              scannerMode: 'CLI'
+              scannerMode: MSBuild
               configMode: file
               configFile: sonar-project.properties
+              projectVersion: '$(Build.BuildNumber)'
               cliProjectVersion: '$(Build.BuildNumber)'
               extraProperties: |
                 sonar.branch.name="$(Build.SourceBranchName)"
-              # projectVersion: '$(Build.BuildNumber)'
 
           - script: dotnet build --configuration $(buildConfiguration)
             displayName: 'dotnet build $(buildConfiguration)'
 
-          - script: dotnet tool install --global coverlet.console
-            displayName: 'Install coverlet'
+          - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat="opencover,cobertura" --logger trx --no-build
+            displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat="opencover,cobertura" --logger trx --no-build'
 
-          - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
-            displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
-
-          - script: dotnet tool install -g dotnet-reportgenerator-globaltool
-            displayName: 'install reportgenerator'
-
-          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"
-            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura;SonarQube"'
+          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
           - task: PublishTestResults@2
             inputs:
