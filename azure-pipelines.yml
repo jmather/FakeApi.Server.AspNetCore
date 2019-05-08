@@ -115,7 +115,7 @@ stages:
 
   - stage: DeployTest
     dependsOn: BuildAndDeploy
-    condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
+    condition: and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
     displayName: Deploy To Test
     jobs:
     - deployment: DeployToTest
@@ -146,7 +146,7 @@ stages:
 
   - stage: DeployProd
     dependsOn: BuildAndDeploy
-    condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     displayName: Deploy To Prod
     jobs:
     - deployment: DeployToProd
