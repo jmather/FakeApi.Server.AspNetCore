@@ -51,7 +51,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             };
             
             _dataService
-                .Setup(o => o.GetEndpointResponse(It.IsAny<ClaimsPrincipal>(), _controller.Request))
+                .Setup(o => o.GetEndpointResponse(It.IsAny<string>(), _controller.Request))
                 .ReturnsAsync(response);
 
             var result = (ContentResult) await _controller.HandleRequest();
@@ -71,7 +71,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             var ex = new MultipleMatchException(new List<FakeEndpoint>(), 0, new List<EndpointMatchingService.ScoredEndpoint>());
 
             _dataService
-                .Setup(o => o.GetEndpointResponse(It.IsAny<ClaimsPrincipal>(), _controller.Request))
+                .Setup(o => o.GetEndpointResponse(It.IsAny<string>(), _controller.Request))
                 .ThrowsAsync(ex);
 
             var result = (ObjectResult) await _controller.HandleRequest();

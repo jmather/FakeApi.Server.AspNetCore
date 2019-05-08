@@ -9,9 +9,9 @@ namespace FakeApi.Server.AspNetCore.Services
     {
         User Register(UserInfo userInfo);
         
-        bool RecordEndpoint(ClaimsPrincipal principal, FakeEndpoint endpoint);
+        bool RecordEndpoint(string username, FakeEndpoint endpoint);
 
-        Task<FakeEndpointResponse> GetEndpointResponse(ClaimsPrincipal principal, HttpRequest request);
+        Task<FakeEndpointResponse> GetEndpointResponse(string username, HttpRequest request);
     }
     
 }

@@ -43,7 +43,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
                 return BadRequest("No Endpoint Provided");
             }
             
-            if (_dataService.RecordEndpoint(User, endpoint))
+            if (_dataService.RecordEndpoint(User.Identity.Name, endpoint))
             {
                 return Created(Request.GetDisplayUrl(), endpoint);
             }

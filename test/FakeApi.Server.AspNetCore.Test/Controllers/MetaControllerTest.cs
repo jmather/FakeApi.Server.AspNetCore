@@ -87,7 +87,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             var endpoint = CreateExampleEndpoint();
 
             _dataService
-                .Setup(ds => ds.RecordEndpoint(It.IsAny<ClaimsPrincipal>(), endpoint))
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), endpoint))
                 .Returns(true);
             
             var result = (CreatedResult) _controller.Record(endpoint);
@@ -118,7 +118,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             var endpoint = CreateExampleEndpoint();
 
             _dataService
-                .Setup(ds => ds.RecordEndpoint(It.IsAny<ClaimsPrincipal>(), endpoint))
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), endpoint))
                 .Returns(false);
             
             var result = (ConflictObjectResult) _controller.Record(endpoint);

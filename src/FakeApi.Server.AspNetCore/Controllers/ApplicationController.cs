@@ -30,7 +30,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
         {
             try
             {
-                var response = await _dataService.GetEndpointResponse(User, Request);
+                var response = await _dataService.GetEndpointResponse(User.Identity.Name, Request);
 
                 return response == null ? NotFound() : EndpointResponse(response);
             }

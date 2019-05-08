@@ -23,16 +23,16 @@ namespace FakeApi.Server.AspNetCore.Services
             return _userRepository.Register(userInfo);
         }
 
-        public bool RecordEndpoint(ClaimsPrincipal principal, FakeEndpoint endpoint)
+        public bool RecordEndpoint(string username, FakeEndpoint endpoint)
         {
-            var user = _userRepository.Get(principal.Identity.Name);
+            var user = _userRepository.Get(username);
 
             return user != null && user.RecordEndpoint(endpoint);
         }
         
-        public async Task<FakeEndpointResponse> GetEndpointResponse(ClaimsPrincipal principal, HttpRequest request)
+        public async Task<FakeEndpointResponse> GetEndpointResponse(string username, HttpRequest request)
         {
-            var user = _userRepository.Get(principal.Identity.Name);
+            var user = _userRepository.Get(username);
 
             if (user == null)
             {
