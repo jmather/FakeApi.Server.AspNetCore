@@ -55,7 +55,7 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
             if (user == null || user.Password != password)
             {
-                return null;
+                return Task.FromResult<User>(null);
             }
 
             return Task.FromResult(user);
