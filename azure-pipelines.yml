@@ -42,7 +42,6 @@ stages:
               projectVersion: '$(Build.BuildNumber)'
               cliProjectVersion: '$(Build.BuildNumber)'
               extraProperties: |
-                sonar.tests=test/
                 sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
                 sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
                 sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
@@ -64,7 +63,6 @@ stages:
               cliProjectVersion: '$(Build.BuildNumber)'
               extraProperties: |
                 sonar.branch.name="$(Build.SourceBranchName)"
-                sonar.tests=test/
                 sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
                 sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
                 sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
