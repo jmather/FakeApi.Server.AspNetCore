@@ -42,8 +42,8 @@ stages:
           - script: dotnet tool install --global coverlet.console
             displayName: 'Install coverlet'
 
-          - script: dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
-            displayName: 'dotnet test --configuration $(buildConfiguration) /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
+          - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build
+            displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura --logger trx --no-build'
 
           - script: dotnet tool install -g dotnet-reportgenerator-globaltool
             displayName: 'install reportgenerator'
