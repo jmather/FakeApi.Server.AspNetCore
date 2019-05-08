@@ -76,8 +76,8 @@ stages:
           - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=\"opencover,cobertura\" --logger trx --no-build
             displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat="opencover,cobertura" --logger trx --no-build'
 
-          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
-            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:CodeCoverageReport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
+          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
           - task: PublishTestResults@2
             inputs:
@@ -88,8 +88,8 @@ stages:
             displayName: 'Publish code coverage'
             inputs:
               codeCoverageTool: Cobertura
-              summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverageReport/Cobertura.xml'
-          #      reportDirectory: '$(Build.SourcesDirectory)/CodeCoverageReport'
+              summaryFileLocation: '$(Build.SourcesDirectory)/coveragereport/Cobertura.xml'
+          #      reportDirectory: '$(Build.SourcesDirectory)/coveragereport'
 
           - task: SonarCloudAnalyze@1
             displayName: 'Run Code Analysis'
