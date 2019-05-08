@@ -3,15 +3,9 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Models;
 
-namespace FakeApi.Server.AspNetCore.Services
+namespace FakeApi.Server.AspNetCore.Repositories
 {
-    public interface IUserManager
-    {
-        User Register(UserInfo userInfo);
-        User GetUser(string username);
-    }
-
-    public class UserManager : IUserManager
+    public class UserRepository : IUserRepository
     {
         private readonly ConcurrentDictionary<string, User> _users = new ConcurrentDictionary<string, User>();
 
@@ -19,11 +13,11 @@ namespace FakeApi.Server.AspNetCore.Services
 
         private Task _cleanup;
 
-        public UserManager() : this(new Config())
+        public UserRepository() : this(new Config())
         {
         }
         
-        public UserManager(Config config)
+        public UserRepository(Config config)
         {
             _config = config ?? new Config();
         }
@@ -45,7 +39,7 @@ namespace FakeApi.Server.AspNetCore.Services
             return user;
         }
 
-        public User GetUser(string username)
+        public User Get(string username)
         {
             if (_users.TryGetValue(username, out var user))
             {
@@ -55,6 +49,18 @@ namespace FakeApi.Server.AspNetCore.Services
             return null;
         }
 
+        public Task<User> Authenticate(string username, string password)
+        {
+            var user = Get(username);
+
+            if (user == null || user.Password != password)
+            {
+                return null;
+            }
+
+            return Task.FromResult(user);
+        }
+        
         private void EnsureCleanupTaskIsStarted()
         {
             if (_cleanup != null && _cleanup.Status == TaskStatus.Running)

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace FakeApi.Server.AspNetCore.Models
 {
-    public class EndpointResponse
+    public class FakeEndpointResponse
     {
         public int Status { get; set; } = 200;
 

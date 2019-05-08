@@ -6,6 +6,8 @@ namespace FakeApi.Server.AspNetCore.Models
 {
     public class User
     {
+        public string Id => Username;
+        
         public string Username { get; set; }
         
         public string Password { get; set; }
@@ -13,7 +15,7 @@ namespace FakeApi.Server.AspNetCore.Models
         [JsonIgnore]
         public string ExternalId { get; set; }
 
-        public string ApiToken
+        public string AuthToken
         {
             get
             {
@@ -27,13 +29,13 @@ namespace FakeApi.Server.AspNetCore.Models
         public DateTime LastActivityAt = DateTime.Now;
 
         [JsonIgnore]
-        public ConcurrentDictionary<string, Endpoint> Endpoints { get; set; } = new ConcurrentDictionary<string, Endpoint>();
+        public ConcurrentDictionary<string, FakeEndpoint> Endpoints { get; set; } = new ConcurrentDictionary<string, FakeEndpoint>();
 
-        public bool RecordEndpoint(Endpoint endpoint)
+        public bool RecordEndpoint(FakeEndpoint fakeEndpoint)
         {
-            var hash = endpoint.GetHash();
+            var hash = fakeEndpoint.GetHash();
 
-            return Endpoints.TryAdd(hash, endpoint);
+            return Endpoints.TryAdd(hash, fakeEndpoint);
         }
     }
 }

@@ -5,10 +5,10 @@ using Newtonsoft.Json.Serialization;
 
 namespace FakeApi.Server.AspNetCore.Models
 {
-    public class Endpoint
+    public class FakeEndpoint
     {
         [JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
-        public EndpointMethod Method { get; set; } = EndpointMethod.Get;
+        public FakeEndpointMethod Method { get; set; } = FakeEndpointMethod.Get;
         
         public string Path { get; set; }
         
@@ -21,7 +21,7 @@ namespace FakeApi.Server.AspNetCore.Models
         [JsonConverter(typeof(StringEnumConverter), typeof(SnakeCaseNamingStrategy))]
         public ResponseMode ResponseMode { get; set; } = ResponseMode.Incremental;
         
-        public List<EndpointResponse> Responses { get; set; } = new List<EndpointResponse>();
+        public List<FakeEndpointResponse> Responses { get; set; } = new List<FakeEndpointResponse>();
 
         [JsonIgnore]
         public int ResponseIndex = 0;

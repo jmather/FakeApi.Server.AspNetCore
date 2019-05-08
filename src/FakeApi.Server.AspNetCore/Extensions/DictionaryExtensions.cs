@@ -6,7 +6,7 @@ namespace FakeApi.Server.AspNetCore.Extensions
     {
         public static int? CountMatches<TKey, TValue>(this Dictionary<TKey, TValue> source, Dictionary<TKey, TValue> required)
         {
-            return CountMatches<TKey, TValue>(source, required, Comparer<TValue>.Default);
+            return CountMatches(source, required, Comparer<TValue>.Default);
         }
         
         public static int? CountMatches<TKey, TValue>(this Dictionary<TKey, TValue> source,

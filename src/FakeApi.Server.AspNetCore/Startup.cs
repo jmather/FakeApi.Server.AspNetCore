@@ -1,5 +1,8 @@
-﻿using FakeApi.Server.AspNetCore.Services;
+﻿using FakeApi.Server.AspNetCore.Handlers;
+using FakeApi.Server.AspNetCore.Repositories;
+using FakeApi.Server.AspNetCore.Services;
 using JMather.RoutingHelpers.AspNetCore.Conventions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +24,11 @@ namespace FakeApi.Server.AspNetCore
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IUserManager, UserManager>();
+            services.AddCors();
+
+            services.AddSingleton<IUserRepository, UserRepository>();
+            services.AddSingleton<IDataService, DataService>();
+            services.AddSingleton<IEndpointMatchingService, EndpointMatchingService>();
             
             services
                 .AddMvc(opt =>
@@ -36,6 +43,11 @@ namespace FakeApi.Server.AspNetCore
                     };
                 })
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            var authenticationScheme = "BasicAuthentication";
+            services.AddAuthentication(authenticationScheme)
+                .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(authenticationScheme, null);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,6 +58,15 @@ namespace FakeApi.Server.AspNetCore
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            // global cors policy
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
+
+            app.UseAuthentication();
 
             app.UseMvc();
         }

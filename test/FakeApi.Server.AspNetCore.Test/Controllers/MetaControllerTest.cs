@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using FakeApi.Server.AspNetCore.Controllers;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using NUnit.Framework;
-using Endpoint = FakeApi.Server.AspNetCore.Models.Endpoint;
+using Xunit;
 
 namespace FakeApi.Server.AspNetCore.Test.Controllers
 {
@@ -16,14 +15,13 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
     {
         private readonly Uri _metaUri = new Uri("http://127.0.0.1:3000/");
         
-        private Mock<IUserManager> _userManager;
+        private Mock<IDataService> _dataService;
         private MetaController _controller;
         
-        [SetUp]
-        public void Setup()
+        private void Setup()
         {
-            _userManager = new Mock<IUserManager>();
-            _controller = new MetaController(_userManager.Object)
+            _dataService = new Mock<IDataService>();
+            _controller = new MetaController(_dataService.Object)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -36,9 +34,11 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             _controller.Request.Path = PathString.FromUriComponent(_metaUri);
         }
 
-        [Test]
+        [Fact]
         public void TestRegister()
         {
+            Setup();
+            
             SetupRegisterCall();
 
             var externalId = "test";
@@ -55,131 +55,106 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
                 ExternalId = externalId,
             };
 
-            _userManager.Setup(o => o.Register(userInfo)).Returns(user);
+            _dataService.Setup(o => o.Register(userInfo)).Returns(user);
 
             var result = (CreatedResult) _controller.Register(userInfo);
 
-            Assert.AreEqual(201, result.StatusCode);
-            Assert.AreEqual(_metaUri.ToString(), result.Location);
-            Assert.IsInstanceOf<User>(result.Value);
+            Assert.Equal(201, result.StatusCode);
+            Assert.Equal(_metaUri.ToString(), result.Location);
+            Assert.IsType<User>(result.Value);
         }
         
-        [Test]
+        [Fact]
         public void TestRegisterFailsWithNoUserInfo()
         {
+            Setup();
+            
             SetupRegisterCall();
             
             var result = (BadRequestObjectResult) _controller.Register(null);
 
-            Assert.AreEqual(400, result.StatusCode);
-            Assert.AreEqual("No User Information Provided", result.Value);
+            Assert.Equal(400, result.StatusCode);
+            Assert.Equal("No User Information Provided", result.Value);
         }
         
-        [Test]
+        [Fact]
         public void TestRecord()
         {
-            var user = SetupRecordCall(true, true);
+            Setup();
+            
+            var user = SetupRecordCall();
 
             var endpoint = CreateExampleEndpoint();
 
+            _dataService
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<ClaimsPrincipal>(), endpoint))
+                .Returns(true);
+            
             var result = (CreatedResult) _controller.Record(endpoint);
 
-            Assert.AreEqual(201, result.StatusCode);
-            Assert.AreEqual(_metaUri.ToString(), result.Location);
-            Assert.IsInstanceOf<Endpoint>(result.Value);
+            Assert.Equal(201, result.StatusCode);
+            Assert.Equal(_metaUri.ToString(), result.Location);
+            Assert.IsType<FakeEndpoint>(result.Value);
         }
 
-        [Test]
+        [Fact]
         public void TestRecordRequiresEndpoint()
         {
-            SetupRecordCall(false);
+            Setup();
+            
+            SetupRecordCall();
             
             var result = (BadRequestObjectResult) _controller.Record(null);
 
-            Assert.AreEqual(400, result.StatusCode);
-            Assert.AreEqual("No Endpoint Provided", result.Value);
+            Assert.Equal(400, result.StatusCode);
+            Assert.Equal("No Endpoint Provided", result.Value);
         }
-
-        [Test]
-        public void TestRecordRequiresAuthentication()
-        {
-            SetupRecordCall(false);
-
-            var endpoint = CreateExampleEndpoint();
-            
-            var result = (UnauthorizedResult) _controller.Record(endpoint);
-
-            Assert.AreEqual(401, result.StatusCode);
-        }
-
-        [Test]
-        public void TestRecordRequiresValidUser()
-        {
-            var user = SetupRecordCall(true, false);
-            
-            var endpoint = CreateExampleEndpoint();
-            
-            var result = (UnauthorizedResult) _controller.Record(endpoint);
-
-            Assert.AreEqual(401, result.StatusCode);
-        }
-
-        [Test]
+        
+        [Fact]
         public void TestRecordDoesNotLetYouRegisterAnEndpointTwice()
         {
-            var user = SetupRecordCall(true, true);
+            Setup();
+            
+            var user = SetupRecordCall();
 
             var endpoint = CreateExampleEndpoint();
+
+            _dataService
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<ClaimsPrincipal>(), endpoint))
+                .Returns(false);
             
-            _controller.Record(endpoint);
             var result = (ConflictObjectResult) _controller.Record(endpoint);
 
-            Assert.AreEqual(409, result.StatusCode);
-            Assert.AreEqual("Matching endpoint already recorded.", result.Value);
+            Assert.Equal(409, result.StatusCode);
+            Assert.Equal("Matching endpoint already recorded.", result.Value);
         }
 
         private void SetupRegisterCall()
         {
             _controller.Request.Method = HttpMethods.Post;
-            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, FakeApiControllerBase.FakeApiAction.Register.ToString());
+            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, MetaController.FakeApiAction.Register.ToString());
         }
 
-        private User SetupRecordCall(bool withAuth, bool setupUserManager = false)
+        private User SetupRecordCall()
         {
             var user = default(User);
             
-            if (withAuth)
-            {
-                user = new User
-                {
-                    Username = "a",
-                    Password = "b",
-                };
-
-                if (setupUserManager)
-                {
-                    _userManager.Setup(o => o.GetUser(user.Username)).Returns(user);
-                }
-            
-                _controller.Request.Headers.Add(FakeApiControllerBase.AuthorizationHeader, $"Basic {user.ApiToken}");
-            }
-            
             _controller.Request.Method = HttpMethods.Put;
-            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, FakeApiControllerBase.FakeApiAction.Record.ToString());
+            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, MetaController.FakeApiAction.Record.ToString());
 
             return user;
         }
         
-        private static Endpoint CreateExampleEndpoint()
+        private static FakeEndpoint CreateExampleEndpoint()
         {
-            return new Endpoint
+            return new FakeEndpoint
             {
-                Method = EndpointMethod.Get,
+                Method = FakeEndpointMethod.Get,
                 Path = "/hello-world",
                 ResponseMode = ResponseMode.Incremental,
-                Responses = new List<EndpointResponse>
+                Responses = new List<FakeEndpointResponse>
                 {
-                    new EndpointResponse
+                    new FakeEndpointResponse
                     {
                         Status = 200,
                         Content = "Hello World!",

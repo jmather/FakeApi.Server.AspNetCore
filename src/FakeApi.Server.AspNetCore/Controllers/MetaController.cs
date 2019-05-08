@@ -1,22 +1,26 @@
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
 using JMather.RoutingHelpers.AspNetCore.Annotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FakeApi.Server.AspNetCore.Controllers
 {
     [ApiController]
-    public class MetaController : FakeApiControllerBase
+    public class MetaController : ControllerBase
     {
         public const string FakeApiActionHeader = "X-FakeApi-Action";
-        
-        public MetaController(IUserManager userManager) : base(userManager)
+
+        private readonly IDataService _dataService;
+
+        public MetaController(IDataService dataService)
         {
+            _dataService = dataService;
         }
         
         [HttpPost("/")]
-        [RequiredHeader(name: FakeApiActionHeader, allowedValue: nameof(FakeApiAction.Register))]
+        [RequiredHeader(FakeApiActionHeader, nameof(FakeApiAction.Register))]
         public IActionResult Register([FromBody] UserInfo userInfo)
         {
             if (userInfo == null)
@@ -24,33 +28,33 @@ namespace FakeApi.Server.AspNetCore.Controllers
                 return BadRequest("No User Information Provided");
             }
 
-            var user = UserManager.Register(userInfo);
+            var user = _dataService.Register(userInfo);
             
-            return Created(HttpContext.Request.GetDisplayUrl(), user);
+            return Created(Request.GetDisplayUrl(), user);
         }
 
         [HttpPut("/")]
-        [RequiredHeader(name: FakeApiActionHeader, allowedValue: nameof(FakeApiAction.Record))]
-        public IActionResult Record([FromBody] Endpoint endpoint)
+        [RequiredHeader(FakeApiActionHeader, nameof(FakeApiAction.Record))]
+        [Authorize]
+        public IActionResult Record([FromBody] FakeEndpoint endpoint)
         {
             if (endpoint == null)
             {
                 return BadRequest("No Endpoint Provided");
             }
             
-            var user = GetRequestUser();
-
-            if (user == null)
+            if (_dataService.RecordEndpoint(User, endpoint))
             {
-                return Unauthorized();
-            }
-
-            if (user.RecordEndpoint(endpoint))
-            {
-                return Created(HttpContext.Request.GetDisplayUrl(), endpoint);
+                return Created(Request.GetDisplayUrl(), endpoint);
             }
 
             return Conflict("Matching endpoint already recorded.");
+        }
+
+        public enum FakeApiAction
+        {
+            Register,
+            Record
         }
     }
 }

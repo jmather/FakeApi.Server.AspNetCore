@@ -1,6 +1,6 @@
 namespace FakeApi.Server.AspNetCore.Models
 {
-    public enum EndpointMethod
+    public enum FakeEndpointMethod
     {
         Get,
         Post,
