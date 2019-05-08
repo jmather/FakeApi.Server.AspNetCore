@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Models;
 
@@ -12,6 +13,8 @@ namespace FakeApi.Server.AspNetCore.Repositories
         private readonly Config _config;
 
         private Task _cleanup;
+
+        private bool _runCleanup = true;
 
         public UserRepository() : this(new Config())
         {
@@ -33,8 +36,8 @@ namespace FakeApi.Server.AspNetCore.Repositories
                 user = CreateUser();
             }
 
-            user.Password = Guid.NewGuid().ToString();
-            user.ExternalId = userInfo.ExternalId ?? Guid.NewGuid().ToString();
+            user.Password = _config.GuidGenerator();
+            user.ExternalId = userInfo.ExternalId ?? _config.GuidGenerator();
 
             return user;
         }
@@ -60,17 +63,39 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
             return Task.FromResult(user);
         }
+
+        public async Task StopCleanup()
+        {
+            _runCleanup = false;
+            await _cleanup;
+        }
         
         private void EnsureCleanupTaskIsStarted()
         {
-            if (_cleanup != null && _cleanup.Status == TaskStatus.Running)
+            var inactiveStates = new List<TaskStatus>
+            {
+                TaskStatus.Faulted,
+                TaskStatus.Canceled,
+                TaskStatus.RanToCompletion,
+                TaskStatus.WaitingForChildrenToComplete,
+            };
+                
+            if (_cleanup != null && inactiveStates.Contains(_cleanup.Status) == false)
             {
                 return;
             }
 
-            _cleanup = Task.Run(DoCleanup);
+            _cleanup = Task.Run(ManageCleanup);
         }
 
+        private async Task ManageCleanup()
+        {
+            while (_runCleanup)
+            {
+                await DoCleanup();
+            }
+        }
+        
         private async Task DoCleanup()
         {
             await Task.Delay(_config.CleanupInterval).ConfigureAwait(false);
@@ -86,9 +111,9 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
         private User CreateUser(string preferredUsername = null)
         {
-            var username = preferredUsername ?? Guid.NewGuid().ToString();
+            var username = preferredUsername ?? _config.GuidGenerator();
             
-            var user = new User()
+            var user = new User
             {
                 Username = username,
             };
@@ -101,6 +126,8 @@ namespace FakeApi.Server.AspNetCore.Repositories
             public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromMinutes(15);
 
             public TimeSpan MaxInactivity { get; set; } = TimeSpan.FromHours(2);
+
+            public Func<string> GuidGenerator = () => Guid.NewGuid().ToString();
         }
     }
 }

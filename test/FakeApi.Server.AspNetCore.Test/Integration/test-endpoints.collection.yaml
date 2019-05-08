@@ -24,6 +24,17 @@ endpoints:
         content: Hello World!
         content_type: text/plain
         delay: 0
+  post_hello_world_body:
+    method: post
+    path: /hello-world-body
+    body: "Foo"
+    content_type: "text/plain"
+    response_mode: incremental
+    responses:
+      - status: 201
+        content: Hello World!
+        content_type: text/plain
+        delay: 0
   put_hello_world:
     method: put
     path: /hello-world

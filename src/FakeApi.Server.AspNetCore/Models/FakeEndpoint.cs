@@ -14,6 +14,8 @@ namespace FakeApi.Server.AspNetCore.Models
         
         public string Body { get; set; }
         
+        public string ContentType { get; set; }
+        
         public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
         
         public Dictionary<string, string> QueryParameters { get; set; } = new Dictionary<string, string>();

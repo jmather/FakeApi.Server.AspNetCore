@@ -120,6 +120,11 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
                 
             var msg = new HttpRequestMessage(method, path);
 
+            if (endpoint.Body != null)
+            {
+                msg.Content = new StringContent(endpoint.Body, Encoding.UTF8, endpoint.ContentType);
+            }
+            
             foreach (var (hName, hVal) in endpoint.Headers)
             {
                 msg.Headers.Add(hName, hVal);
