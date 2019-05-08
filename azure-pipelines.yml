@@ -30,7 +30,7 @@ stages:
             displayName: 'install reportgenerator'
 
           - task: SonarCloudPrepare@1
-            and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
               SonarCloud: 'Azure'
               organization: 'jmather-github'
@@ -52,7 +52,7 @@ stages:
                 sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
 
           - task: SonarCloudPrepare@1
-            and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
+            condition: and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
             inputs:
               SonarCloud: 'Azure'
               organization: 'jmather-github'
