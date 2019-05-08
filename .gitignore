@@ -2,5 +2,6 @@
 obj
 bin
 coverage.cobertura.xml
+coverage.opencover.xml
 TestResults
 CodeCoverageReport

@@ -40,10 +40,10 @@ namespace JMather.RoutingHelpers.AspNetCore.Constraints
                 return false;
             }
             
-            return _allowedValues.Any(allowedValue => string.Equals(allowedValue, value));
+            return _allowedValues.Any(allowedValue => Equals(allowedValue, value));
         }
 
-        private object GetParameterValue(ParameterDescriptor parameterDescriptor, ActionConstraintContext context)
+        private static object GetParameterValue(ParameterDescriptor parameterDescriptor, ActionConstraintContext context)
         {
             if (parameterDescriptor.BindingInfo.BindingSource == BindingSource.Header)
             {

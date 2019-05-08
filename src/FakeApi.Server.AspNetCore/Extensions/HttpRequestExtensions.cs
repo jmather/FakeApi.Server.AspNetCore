@@ -16,15 +16,24 @@ namespace FakeApi.Server.AspNetCore.Extensions
         /// Retrieve the raw body as a string from the Request.Body stream
         /// </summary>
         /// <param name="request">Request instance to apply to</param>
+        /// <returns></returns>
+        public static async Task<string> GetRawBodyStringAsync(this HttpRequest request)
+        {
+            return await GetRawBodyStringAsync(request, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Retrieve the raw body as a string from the Request.Body stream
+        /// </summary>
+        /// <param name="request">Request instance to apply to</param>
         /// <param name="encoding">Optional - Encoding, defaults to UTF8</param>
         /// <returns></returns>
-        public static async Task<string> GetRawBodyStringAsync(this HttpRequest request, Encoding encoding = null)
+        public static async Task<string> GetRawBodyStringAsync(this HttpRequest request, Encoding encoding)
         {
-            if (encoding == null)
-                encoding = Encoding.UTF8;
-
             using (StreamReader reader = new StreamReader(request.Body, encoding))
+            {
                 return await reader.ReadToEndAsync();
+            }
         }
 
         /// <summary>
@@ -45,7 +54,7 @@ namespace FakeApi.Server.AspNetCore.Extensions
         {
             var pieces = new List<string>
             {
-                request.Method.ToString().ToLower(),
+                request.Method.ToLower(),
                 request.Path,
             };
 

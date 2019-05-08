@@ -26,7 +26,7 @@ namespace FakeApi.Server.AspNetCore.Models
         }
 
         [JsonIgnore]
-        public DateTime LastActivityAt = DateTime.Now;
+        public DateTime LastActivityAt { get; set; } = DateTime.Now;
 
         [JsonIgnore]
         public ConcurrentDictionary<string, FakeEndpoint> Endpoints { get; set; } = new ConcurrentDictionary<string, FakeEndpoint>();

@@ -115,8 +115,6 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
         {
             Setup();
             
-            var user = SetupRecordCall();
-
             var endpoint = CreateExampleEndpoint();
 
             _dataService

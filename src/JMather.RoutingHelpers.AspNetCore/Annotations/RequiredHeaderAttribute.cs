@@ -12,12 +12,17 @@ namespace JMather.RoutingHelpers.AspNetCore.Annotations
 
         public bool CaseSensitive { get; set; } = false;
         
-        public RequiredHeaderAttribute(string name, string allowedValue, bool caseSensitive = false) 
+        public RequiredHeaderAttribute(string name, string allowedValue) 
+            : this(name, new List<string> { allowedValue }, false)
+        {
+        }
+        
+        public RequiredHeaderAttribute(string name, string allowedValue, bool caseSensitive) 
             : this(name, new List<string> { allowedValue }, caseSensitive)
         {
         }
         
-        public RequiredHeaderAttribute(string name, IEnumerable<string> allowedValues, bool caseSensitive = false)
+        public RequiredHeaderAttribute(string name, IEnumerable<string> allowedValues, bool caseSensitive)
         {
             Name = name;
             AllowedValues = allowedValues;

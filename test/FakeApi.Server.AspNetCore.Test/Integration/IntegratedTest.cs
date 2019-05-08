@@ -8,14 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Controllers;
 using FakeApi.Server.AspNetCore.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Xunit;
-using Xunit.Sdk;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -23,8 +19,6 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
 {
     public class IntegratedTest : IClassFixture<WebApplicationFactory<Startup>>
     {
-        private readonly FakeEndpointCollection _collection = GetTestCollection();
-        
         private readonly WebApplicationFactory<Startup> _factory;
 
         public IntegratedTest(WebApplicationFactory<Startup> factory)
@@ -67,7 +61,7 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             // Arrange
             var client = await GetAuthToken();
 
-            Assert.True(await RegisterEndpoint(client, definition));
+            Assert.True(await RegisterEndpoint(client, definition), name);
 
             var msg = GetRequestMessage(definition);
             

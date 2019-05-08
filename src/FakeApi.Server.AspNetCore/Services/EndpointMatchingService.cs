@@ -98,7 +98,7 @@ namespace FakeApi.Server.AspNetCore.Services
             return new ScoredEndpoint(endpoint, matches);
         }
 
-        private int? CountEndpointHeaderMatches(HttpRequest request, FakeEndpoint endpoint)
+        private static int? CountEndpointHeaderMatches(HttpRequest request, FakeEndpoint endpoint)
         {
             var normalizedHeaders = request.Headers
                 .ToDictionary(k => k.Key.ToLower(), v => v.Value.ToString());
@@ -106,7 +106,7 @@ namespace FakeApi.Server.AspNetCore.Services
             return normalizedHeaders.CountMatches(endpoint.Headers);
         }
 
-        private int? CountEndpointQueryMatches(HttpRequest request, FakeEndpoint endpoint)
+        private static int? CountEndpointQueryMatches(HttpRequest request, FakeEndpoint endpoint)
         {
             var queryParams = request.Query
                 .ToDictionary(k => k.Key, v => v.Value.ToString());

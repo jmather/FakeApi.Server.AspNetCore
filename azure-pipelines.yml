@@ -30,6 +30,29 @@ stages:
             displayName: 'install reportgenerator'
 
           - task: SonarCloudPrepare@1
+            and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            inputs:
+              SonarCloud: 'Azure'
+              organization: 'jmather-github'
+              scannerMode: MSBuild
+              configMode: file
+              configFile: sonar-project.properties
+              projectKey: jmather_FakeApi.Server.AspNetCore
+              projectName: .Net Core Fake API Server
+              projectVersion: '$(Build.BuildNumber)'
+              cliProjectVersion: '$(Build.BuildNumber)'
+              extraProperties: |
+                sonar.sources=src/
+                sonar.tests=test/
+                sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
+                sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
+                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
+                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
+                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
+                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
+
+          - task: SonarCloudPrepare@1
+            and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
             inputs:
               SonarCloud: 'Azure'
               organization: 'jmather-github'
@@ -42,6 +65,14 @@ stages:
               cliProjectVersion: '$(Build.BuildNumber)'
               extraProperties: |
                 sonar.branch.name="$(Build.SourceBranchName)"
+                sonar.sources=src/
+                sonar.tests=test/
+                sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
+                sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
+                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
+                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
+                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
+                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
 
           - script: dotnet build --configuration $(buildConfiguration)
             displayName: 'dotnet build $(buildConfiguration)'
@@ -69,9 +100,9 @@ stages:
             # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
             continueOnError: true
 
-          - task: SonarCloudPublish@1
-            inputs:
-              pollingTimeoutSec: '300'
+#          - task: SonarCloudPublish@1
+#            inputs:
+#              pollingTimeoutSec: '300'
 
 #  - job: BuildTestDeploy
 #    displayName: Build for Deployment, Test, and Optionally Deploy (set deployTo = [Test, Production])

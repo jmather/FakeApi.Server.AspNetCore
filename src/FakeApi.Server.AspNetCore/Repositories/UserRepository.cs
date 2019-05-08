@@ -73,7 +73,7 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
         private async Task DoCleanup()
         {
-            await Task.Delay(_config.CleanupInterval);
+            await Task.Delay(_config.CleanupInterval).ConfigureAwait(false);
 
             foreach (var pair in _users)
             {
@@ -84,9 +84,9 @@ namespace FakeApi.Server.AspNetCore.Repositories
             }
         }
 
-        private User CreateUser(string username = null)
+        private User CreateUser(string preferredUsername = null)
         {
-            username = username ?? Guid.NewGuid().ToString();
+            var username = preferredUsername ?? Guid.NewGuid().ToString();
             
             var user = new User()
             {

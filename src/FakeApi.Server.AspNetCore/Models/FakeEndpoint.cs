@@ -24,7 +24,7 @@ namespace FakeApi.Server.AspNetCore.Models
         public List<FakeEndpointResponse> Responses { get; set; } = new List<FakeEndpointResponse>();
 
         [JsonIgnore]
-        public int ResponseIndex = 0;
+        public int ResponseIndex { get; set; }
 
         public string GetHash()
         {
