@@ -36,6 +36,8 @@ stages:
               scannerMode: MSBuild
               configMode: file
               configFile: sonar-project.properties
+              projectKey: jmather_FakeApi.Server.AspNetCore
+              projectName: .Net Core Fake API Server
               projectVersion: '$(Build.BuildNumber)'
               cliProjectVersion: '$(Build.BuildNumber)'
               extraProperties: |
