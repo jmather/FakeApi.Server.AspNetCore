@@ -110,7 +110,7 @@ stages:
             displayName: Publish Artifact
             inputs:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'FakeApiServer'
+              ArtifactName: 'Fake Api Server'
               publishLocation: 'Container'
 
   - stage: DeployTest
