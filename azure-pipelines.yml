@@ -116,58 +116,91 @@ stages:
   - stage: DeployTest
     dependsOn: BuildAndDeploy
     condition: and(succeeded(), not(eq(variables['DeployTo'], 'Production')))
-    displayName: Deploy
+    displayName: Deploy To Test
     jobs:
-    - job: DeployToTest
+    - deployment: DeployToTest
+      environment: string
       pool:
         vmImage: 'ubuntu-latest'
-      variables:
-        deployTo: None
-      steps:
-      - task: DownloadBuildArtifacts@0
-        inputs:
-          buildType: 'current'
-          downloadType: 'single'
-          artifactName: 'FakeApiServer'
-          downloadPath: '$(System.ArtifactsDirectory)'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: DownloadBuildArtifacts@0
+              inputs:
+                buildType: 'current'
+                downloadType: 'single'
+                artifactName: 'FakeApiServer'
+                downloadPath: '$(System.ArtifactsDirectory)'
 
-      - task: AzureRmWebAppDeployment@4
-        displayName: Deploy to https://fake-api-test.azurewebsites.com
-        inputs:
-          ConnectionType: 'AzureRM'
-          azureSubscription: 'Fake API Personal Azure Subscription'
-          appType: 'webApp'
-          WebAppName: 'fake-api-test'
-          Package: $(System.ArtifactsDirectory)/**/*.zip
-          enableCustomDeployment: true
-          DeploymentType: 'zipDeploy'
+            - task: AzureRmWebAppDeployment@4
+              displayName: Deploy to https://fake-api-test.azurewebsites.com
+              inputs:
+                ConnectionType: 'AzureRM'
+                azureSubscription: 'Fake API Personal Azure Subscription'
+                appType: 'webApp'
+                WebAppName: 'fake-api-test'
+                Package: $(System.ArtifactsDirectory)/**/*.zip
+                enableCustomDeployment: true
+                DeploymentType: 'zipDeploy'
 
   - stage: DeployProd
     dependsOn: BuildAndDeploy
     condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
-    displayName: DeployProd
+    displayName: Deploy To Prod
     jobs:
-    - job: DeployToProd
+    - deployment: DeployToProd
+      environment: string
       pool:
         vmImage: 'ubuntu-latest'
-      variables:
-        deployTo: None
-      steps:
-      - task: DownloadBuildArtifacts@0
-        inputs:
-          buildType: 'current'
-          downloadType: 'single'
-          artifactName: 'FakeApiServer'
-          downloadPath: '$(System.ArtifactsDirectory)'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: DownloadBuildArtifacts@0
+              inputs:
+                buildType: 'current'
+                downloadType: 'single'
+                artifactName: 'FakeApiServer'
+                downloadPath: '$(System.ArtifactsDirectory)'
 
-      - task: AzureRmWebAppDeployment@4
-        displayName: Deploy to https://fake-api.azurewebsites.com
-        inputs:
-          ConnectionType: 'AzureRM'
-          azureSubscription: 'Fake API Personal Azure Subscription'
-          appType: 'webApp'
-          WebAppName: 'fake-api'
-          Package: $(System.ArtifactsDirectory)/**/*.zip
-          enableCustomDeployment: true
-          DeploymentType: 'zipDeploy'
+            - task: AzureRmWebAppDeployment@4
+              displayName: Deploy to https://fake-api.azurewebsites.com
+              inputs:
+                ConnectionType: 'AzureRM'
+                azureSubscription: 'Fake API Personal Azure Subscription'
+                appType: 'webApp'
+                WebAppName: 'fake-api'
+                Package: $(System.ArtifactsDirectory)/**/*.zip
+                enableCustomDeployment: true
+                DeploymentType: 'zipDeploy'
+
+  # - stage: DeployProd
+  #   dependsOn: BuildAndDeploy
+  #   condition: and(succeeded(), eq(variables['DeployTo'], 'Production'))
+  #   displayName: DeployProd
+  #   jobs:
+  #   - job: DeployToProd
+  #     pool:
+  #       vmImage: 'ubuntu-latest'
+  #     variables:
+  #       deployTo: None
+  #     steps:
+  #     - task: DownloadBuildArtifacts@0
+  #       inputs:
+  #         buildType: 'current'
+  #         downloadType: 'single'
+  #         artifactName: 'FakeApiServer'
+  #         downloadPath: '$(System.ArtifactsDirectory)'
+
+  #     - task: AzureRmWebAppDeployment@4
+  #       displayName: Deploy to https://fake-api.azurewebsites.com
+  #       inputs:
+  #         ConnectionType: 'AzureRM'
+  #         azureSubscription: 'Fake API Personal Azure Subscription'
+  #         appType: 'webApp'
+  #         WebAppName: 'fake-api'
+  #         Package: $(System.ArtifactsDirectory)/**/*.zip
+  #         enableCustomDeployment: true
+  #         DeploymentType: 'zipDeploy'
 
