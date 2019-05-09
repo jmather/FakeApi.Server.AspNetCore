@@ -119,7 +119,7 @@ stages:
     displayName: Deploy To Test
     jobs:
     - deployment: DeployToTest
-      environment: string
+      environment: Testing
       pool:
         vmImage: 'ubuntu-latest'
       strategy:
@@ -150,7 +150,7 @@ stages:
     displayName: Deploy To Prod
     jobs:
     - deployment: DeployToProd
-      environment: string
+      environment: Production
       pool:
         vmImage: 'ubuntu-latest'
       strategy:
