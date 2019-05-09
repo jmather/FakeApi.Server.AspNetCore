@@ -109,7 +109,7 @@ stages:
           - task: PublishPipelineArtifact@0
             inputs:
               artifactName: 'FakeApiServer'
-              targetPath: '$(Build.ArtifactStagingDirectory)/**/*.zip'
+              targetPath: '$(Build.ArtifactStagingDirectory)/*.zip'
 
   - stage: DeployTest
     dependsOn: BuildAndDeploy
