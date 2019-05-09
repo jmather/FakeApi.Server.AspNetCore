@@ -106,12 +106,10 @@ stages:
               feedsToUse: 'select'
               versioningScheme: 'off'
 
-          - task: PublishBuildArtifacts@1
-            displayName: Publish Artifact
+          - task: PublishPipelineArtifact@0
             inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'Fake Api Server'
-              publishLocation: 'Container'
+              artifactName: 'FakeApiServer'
+              targetPath: '$(Build.ArtifactStagingDirectory)/**/*.zip'
 
   - stage: DeployTest
     dependsOn: BuildAndDeploy
