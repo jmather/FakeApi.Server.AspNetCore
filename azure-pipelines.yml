@@ -110,7 +110,7 @@ stages:
           - task: PublishPipelineArtifact@0
             inputs:
               artifactName: 'FakeApiServer'
-              targetPath: '$(Build.ArtifactStagingDirectory)/FakeApi.Server.AspNetCore/FakeApi.Server.AspNetCore.zip'
+              targetPath: '$(Build.ArtifactStagingDirectory)/FakeApi.Server.AspNetCore.zip'
 
   - stage: DeployTest
     dependsOn: BuildAndDeploy
