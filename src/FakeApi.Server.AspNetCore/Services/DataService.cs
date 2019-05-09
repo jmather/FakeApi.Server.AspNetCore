@@ -72,7 +72,7 @@ namespace FakeApi.Server.AspNetCore.Services
         }
         
         /// from http://csharphelper.com/blog/2014/08/use-a-cryptographic-random-number-generator-in-c/
-        private int RandomInteger(int min, int max)
+        private static int RandomInteger(int min, int max)
         {
             uint scale = uint.MaxValue;
             while (scale == uint.MaxValue)
