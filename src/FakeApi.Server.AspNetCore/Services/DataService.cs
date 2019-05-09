@@ -1,5 +1,6 @@
 using System;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Repositories;
@@ -9,6 +10,8 @@ namespace FakeApi.Server.AspNetCore.Services
 {
     public class DataService : IDataService
     {
+        private static readonly RandomNumberGenerator RandomNumberGenerator = RandomNumberGenerator.Create();
+        
         private readonly IUserRepository _userRepository;
         private readonly IEndpointMatchingService _endpointMatcher;
 
@@ -48,8 +51,7 @@ namespace FakeApi.Server.AspNetCore.Services
             
             if (endpoint.ResponseMode == ResponseMode.Random && endpoint.Responses.Count > 1)
             {
-                var random = new Random();
-                endpoint.ResponseIndex = random.Next(0, endpoint.Responses.Count - 1);
+                endpoint.ResponseIndex = RandomInteger(0, endpoint.Responses.Count - 1);
             }
 
             var response = endpoint.Responses[endpoint.ResponseIndex];
@@ -67,6 +69,24 @@ namespace FakeApi.Server.AspNetCore.Services
             await Task.Delay(response.Delay);
 
             return response;
+        }
+        
+        /// from http://csharphelper.com/blog/2014/08/use-a-cryptographic-random-number-generator-in-c/
+        private int RandomInteger(int min, int max)
+        {
+            uint scale = uint.MaxValue;
+            while (scale == uint.MaxValue)
+            {
+                // Get four random bytes.
+                byte[] four_bytes = new byte[4];
+                RandomNumberGenerator.GetBytes(four_bytes);
+
+                // Convert that into an uint.
+                scale = BitConverter.ToUInt32(four_bytes, 0);
+            }
+
+            // Add min to the scaled difference between max and min.
+            return (int)(min + (max - min) * (scale / (double)uint.MaxValue));
         }
     }
 }
