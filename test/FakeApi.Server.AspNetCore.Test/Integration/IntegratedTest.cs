@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -54,9 +55,9 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             Assert.True(payload.ContainsKey("auth_token"));
         }
         
-        [SkippableTheory]
-        [MemberData(nameof(Endpoints))]
-        public async Task TestEndpointsIndividually(string name, FakeEndpoint definition)
+        [Theory]
+        [MemberData(nameof(IncrementalEndpoints))]
+        public async Task TestIncrementalEndpointsIndividually(string name, FakeEndpoint definition)
         {
             // Arrange
             var client = await GetAuthToken();
@@ -74,10 +75,44 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             Assert.Equal(resp.Content, await response.Content.ReadAsStringAsync());
         }
 
+        [Theory]
+        [MemberData(nameof(RandomEndpoints))]
+        public async Task TestRandomEndpointsIndividually(string name, FakeEndpoint definition)
+        {
+            // Arrange
+            var client = await GetAuthToken();
+
+            Assert.True(await RegisterEndpoint(client, definition), name);
+            
+            String lastContent = null;
+            var unmatchCount = 0;
+
+            for (var i = 0; i < definition.Responses.Count; i++)
+            {
+                var msg = GetRequestMessage(definition);
+                var response = await client.SendAsync(msg);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                if (lastContent == null)
+                {
+                    lastContent = responseContent;
+                }
+
+                if (lastContent != responseContent)
+                {
+                    unmatchCount++;
+                }
+            }
+
+            var expectedWins = int.Parse((definition.Responses.Count / 2).ToString());
+            
+            Assert.True(expectedWins < unmatchCount);
+        }
+
         [Fact]
         public async Task TestEndpointsTogether()
         {
-            var endpoints = Endpoints().Select(i =>
+            var endpoints = IncrementalEndpoints().Select(i =>
             {
                 var l = i.ToList();
                 return KeyValuePair.Create((string) l[0], (FakeEndpoint) l[1]);
@@ -195,13 +230,26 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             return msg;
         }
 
-        public static IEnumerable<object[]> Endpoints()
+        public static IEnumerable<object[]> IncrementalEndpoints()
         {
             var collection = GetTestCollection();
 
             var resp = collection.Endpoints
                 .Where(kv => kv.Key.StartsWith("bad_") == false)
                 .Where(kv => kv.Value.ResponseMode == ResponseMode.Incremental)
+                .Select(kv => new object[] {kv.Key, kv.Value})
+                .ToList();
+
+            return resp;
+        }
+        
+        public static IEnumerable<object[]> RandomEndpoints()
+        {
+            var collection = GetTestCollection();
+
+            var resp = collection.Endpoints
+                .Where(kv => kv.Key.StartsWith("bad_") == false)
+                .Where(kv => kv.Value.ResponseMode == ResponseMode.Random)
                 .Select(kv => new object[] {kv.Key, kv.Value})
                 .ToList();
 

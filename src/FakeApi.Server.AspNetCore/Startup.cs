@@ -49,7 +49,6 @@ namespace FakeApi.Server.AspNetCore
             var authenticationScheme = "BasicAuthentication";
             services.AddAuthentication(authenticationScheme)
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(authenticationScheme, null);
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
