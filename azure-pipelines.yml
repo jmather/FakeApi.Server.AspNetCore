@@ -141,7 +141,7 @@ stages:
                 azureSubscription: 'Fake API Personal Azure Subscription'
                 appType: 'webApp'
                 WebAppName: 'fake-api-test'
-                Package: $(System.ArtifactsDirectory)/**/*.zip
+                Package: $(System.ArtifactsDirectory)/*.zip
                 enableCustomDeployment: true
                 DeploymentType: 'zipDeploy'
 
@@ -172,7 +172,7 @@ stages:
                 azureSubscription: 'Fake API Personal Azure Subscription'
                 appType: 'webApp'
                 WebAppName: 'fake-api'
-                Package: $(System.ArtifactsDirectory)/**/*.zip
+                Package: $(System.ArtifactsDirectory)/*.zip
                 enableCustomDeployment: true
                 DeploymentType: 'zipDeploy'
 
