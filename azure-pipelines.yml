@@ -158,6 +158,12 @@ stages:
         runOnce:
           deploy:
             steps:
+            - script: ls -lah
+              displayName: 'ls -lah'
+
+            - script: ls -lah */*
+              displayName: 'ls -lah */*'
+
             - task: DownloadBuildArtifacts@0
               inputs:
                 buildType: 'current'
