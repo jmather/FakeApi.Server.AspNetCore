@@ -83,8 +83,7 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
 
             Assert.True(await RegisterEndpoint(client, definition), name);
             
-            String lastContent = null;
-            var unmatchCount = 0;
+            var unmatchedCount = 0;
 
             foreach (var expected in definition.Responses)
             {
@@ -93,11 +92,11 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
                 
                 if (await DoesMatchResponse(expected, response))
                 {
-                    unmatchCount++;
+                    unmatchedCount++;
                 }
             }
 
-            Assert.True(unmatchCount < definition.Responses.Count);
+            Assert.True(unmatchedCount < definition.Responses.Count);
         }
 
         [Fact]
