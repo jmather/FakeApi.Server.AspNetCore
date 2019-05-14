@@ -71,8 +71,7 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
 
             var resp = definition.Responses.First();
             
-            Assert.Equal(resp.Status, (int) response.StatusCode);
-            Assert.Equal(resp.Content, await response.Content.ReadAsStringAsync());
+            Assert.True(await DoesMatchResponse(resp, response));
         }
 
         [Theory]
@@ -87,26 +86,18 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             String lastContent = null;
             var unmatchCount = 0;
 
-            for (var i = 0; i < definition.Responses.Count; i++)
+            foreach (var expected in definition.Responses)
             {
                 var msg = GetRequestMessage(definition);
                 var response = await client.SendAsync(msg);
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                if (lastContent == null)
-                {
-                    lastContent = responseContent;
-                }
-
-                if (lastContent != responseContent)
+                
+                if (await DoesMatchResponse(expected, response))
                 {
                     unmatchCount++;
                 }
             }
 
-            var expectedWins = int.Parse((definition.Responses.Count / 2).ToString());
-            
-            Assert.True(expectedWins < unmatchCount);
+            Assert.True(unmatchCount < definition.Responses.Count);
         }
 
         [Fact]
@@ -166,6 +157,22 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             }
 
             return msg;
+        }
+
+        private async Task<bool> DoesMatchResponse(FakeEndpointResponse expected, HttpResponseMessage response)
+        {
+            if (expected.Status != (int) response.StatusCode)
+            {
+                return false;
+            }
+            
+            var responseContent = await response.Content.ReadAsStringAsync();
+            if (expected.Content != responseContent)
+            {
+                return false;
+            }
+
+            return expected.ContentType == response.Content.Headers.ContentType.MediaType;
         }
 
         private async Task<bool> RegisterEndpoint(HttpClient client, FakeEndpoint endpoint)
