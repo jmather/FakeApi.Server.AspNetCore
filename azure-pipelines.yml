@@ -127,12 +127,11 @@ stages:
         runOnce:
           deploy:
             steps:
-            - task: DownloadBuildArtifacts@0
+            - task: DownloadPipelineArtifact@1
               inputs:
                 buildType: 'current'
-                downloadType: 'single'
                 artifactName: 'FakeApiServer'
-                downloadPath: '$(System.ArtifactsDirectory)'
+                targetPath: '$(System.ArtifactsDirectory)'
 
             - task: AzureRmWebAppDeployment@4
               displayName: Deploy to https://fake-api-test.azurewebsites.com
@@ -164,12 +163,11 @@ stages:
             - script: ls -lah */*
               displayName: 'ls -lah */*'
 
-            - task: DownloadBuildArtifacts@0
+            - task: DownloadPipelineArtifact@1
               inputs:
                 buildType: 'current'
-                downloadType: 'single'
                 artifactName: 'FakeApiServer'
-                downloadPath: '$(System.ArtifactsDirectory)'
+                targetPath: '$(System.ArtifactsDirectory)'
 
             - task: AzureRmWebAppDeployment@4
               displayName: Deploy to https://fake-api.azurewebsites.com
