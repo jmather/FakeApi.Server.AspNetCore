@@ -2,6 +2,8 @@
 
 [![Build Status](https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_apis/build/status/GitHub%20FakeAPI.Server.AspNetCore?branchName=master)](https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build/latest?definitionId=2&branchName=master)
 [![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=jmather_FakeApi.Server.AspNetCore&metric=alert_status)](https://sonarcloud.io/dashboard?id=jmather_FakeApi.Server.AspNetCore)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=jmather_FakeApi.Server.AspNetCore&metric=coverage)](https://sonarcloud.io/dashboard?id=jmather_FakeApi.Server.AspNetCore)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=jmather_FakeApi.Server.AspNetCore&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=jmather_FakeApi.Server.AspNetCore)
 
 This tool allows you to register collections of arbitrary endpoints to mock responses for, allowing you to easily test your code end-to-end.
 
