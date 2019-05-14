@@ -160,9 +160,6 @@ stages:
             - script: ls -lah
               displayName: 'ls -lah'
 
-            - script: ls -lah */*
-              displayName: 'ls -lah */*'
-
             - task: DownloadPipelineArtifact@1
               inputs:
                 buildType: 'current'
