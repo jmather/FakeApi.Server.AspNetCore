@@ -24,78 +24,80 @@ stages:
             inputs:
               version: 2.2.103
 
-          - script: dotnet tool install --global coverlet.console
-            displayName: 'Install coverlet'
-
-          - script: dotnet tool install -g dotnet-reportgenerator-globaltool
-            displayName: 'install reportgenerator'
-
-          - task: SonarCloudPrepare@1
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-            inputs:
-              SonarCloud: 'Azure'
-              organization: 'jmather-github'
-              scannerMode: MSBuild
-              configMode: file
-              configFile: sonar-project.properties
-              projectKey: jmather_FakeApi.Server.AspNetCore
-              projectName: .Net Core Fake API Server
-              projectVersion: '$(Build.BuildNumber)'
-              cliProjectVersion: '$(Build.BuildNumber)'
-              extraProperties: |
-                sonar.cs.opencover.reportsPaths=$(Build.SourcesDirectory)/test/*/coverage.opencover.xml,$(Build.SourcesDirectory)/test/FakeApi.Server.AspNetCore.Test/coverage.opencover.xml
-                sonar.cs.vstest.reportsPaths=$(Build.SourcesDirectory)/test/*/TestResults/*.trx
-                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
-                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
-                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
-                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
-
-          - task: SonarCloudPrepare@1
-            condition: and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
-            inputs:
-              SonarCloud: 'Azure'
-              organization: 'jmather-github'
-              scannerMode: MSBuild
-              configMode: file
-              configFile: sonar-project.properties
-              projectKey: jmather_FakeApi.Server.AspNetCore
-              projectName: .Net Core Fake API Server
-              projectVersion: '$(Build.BuildNumber)'
-              cliProjectVersion: '$(Build.BuildNumber)'
-              extraProperties: |
-                sonar.branch.name="$(Build.SourceBranchName)"
-                sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
-                sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
-                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
-                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
-                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
-                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
+#          - script: dotnet tool install --global coverlet.console
+#            displayName: 'Install coverlet'
+#
+#          - script: dotnet tool install -g dotnet-reportgenerator-globaltool
+#            displayName: 'install reportgenerator'
+#
+#          - task: SonarCloudPrepare@1
+#            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+#            inputs:
+#              SonarCloud: 'Azure'
+#              organization: 'jmather-github'
+#              scannerMode: MSBuild
+#              configMode: file
+#              configFile: sonar-project.properties
+#              projectKey: jmather_FakeApi.Server.AspNetCore
+#              projectName: .Net Core Fake API Server
+#              projectVersion: '$(Build.BuildNumber)'
+#              cliProjectVersion: '$(Build.BuildNumber)'
+#              extraProperties: |
+#                sonar.cs.opencover.reportsPaths=$(Build.SourcesDirectory)/test/*/coverage.opencover.xml,$(Build.SourcesDirectory)/test/FakeApi.Server.AspNetCore.Test/coverage.opencover.xml
+#                sonar.cs.vstest.reportsPaths=$(Build.SourcesDirectory)/test/*/TestResults/*.trx
+#                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
+#                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
+#                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
+#                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
+#
+#          - task: SonarCloudPrepare@1
+#            condition: and(succeeded(), not(eq(variables['Build.SourceBranch'], 'refs/heads/master')))
+#            inputs:
+#              SonarCloud: 'Azure'
+#              organization: 'jmather-github'
+#              scannerMode: MSBuild
+#              configMode: file
+#              configFile: sonar-project.properties
+#              projectKey: jmather_FakeApi.Server.AspNetCore
+#              projectName: .Net Core Fake API Server
+#              projectVersion: '$(Build.BuildNumber)'
+#              cliProjectVersion: '$(Build.BuildNumber)'
+#              extraProperties: |
+#                sonar.branch.name="$(Build.SourceBranchName)"
+#                sonar.cs.opencover.reportsPaths=test/**/coverage.opencover.xml
+#                sonar.cs.vstest.reportsPaths=test/**/TestResults/*.trx
+#                sonar.links.homepage=https://github.com/jmather/FakeApi.Server.AspNetCore
+#                sonar.links.ci=https://dev.azure.com/jmather0115/FakeAPI.Server.AspNetCore/_build?definitionId=1&_a=summary
+#                sonar.links.scm=https://github.com/jmather/FakeApi.Server.AspNetCore
+#                sonar.links.issue=https://github.com/jmather/FakeApi.Server.AspNetCore/issues
 
           - script: dotnet build --configuration $(buildConfiguration)
             displayName: 'dotnet build $(buildConfiguration)'
 
-          - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=\"opencover,cobertura\" --logger trx --no-build
-            displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat="opencover,cobertura" --logger trx --no-build'
+          - script: dotnet test --configuration $(buildConfiguration) --logger trx --no-build
+            displayName: 'dotnet test --configuration $(buildConfiguration) --logger trx --no-build'
 
-          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
-            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
+#          - script: dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat=\"opencover,cobertura\" --logger trx --no-build
+#            displayName: 'dotnet test --configuration $(buildConfiguration) /p:Exclude="[xunit*]*" /p:CollectCoverage=true /p:CoverletOutputFormat="opencover,cobertura" --logger trx --no-build'
+
+#          - script: reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"
+#            displayName: 'reportgenerator -reports:test/**/coverage.cobertura.xml -targetdir:coveragereport -reporttypes:"HtmlInline_AzurePipelines;Cobertura"'
 
           - task: PublishTestResults@2
             inputs:
               testRunner: VSTest
               testResultsFiles: 'test/**/*.trx'
 
-          - task: PublishCodeCoverageResults@1
-            displayName: 'Publish code coverage'
-            inputs:
-              codeCoverageTool: Cobertura
-              summaryFileLocation: '$(Build.SourcesDirectory)/coveragereport/Cobertura.xml'
-          #      reportDirectory: '$(Build.SourcesDirectory)/coveragereport'
+#          - task: PublishCodeCoverageResults@1
+#            displayName: 'Publish code coverage'
+#            inputs:
+#              codeCoverageTool: Cobertura
+#              summaryFileLocation: '$(Build.SourcesDirectory)/coveragereport/Cobertura.xml'
 
-          - task: SonarCloudAnalyze@1
-            displayName: 'Run Code Analysis'
-            # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
-            continueOnError: true
+#          - task: SonarCloudAnalyze@1
+#            displayName: 'Run Code Analysis'
+#            # This will fail on PR builds https://go.microsoft.com/fwlink/?linkid=862029
+#            continueOnError: true
 
           - task: DotNetCoreCLI@2
             displayName: Package Artifact
