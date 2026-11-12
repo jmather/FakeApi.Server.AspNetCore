@@ -21,10 +21,11 @@ stages:
           vmImage: 'ubuntu-latest'
         steps:
           # Install the latest version of the dotnet sdk
-          - task: DotNetCoreInstaller@0
-            displayName: 'Use .NET Core sdk 2.2.103'
+          - task: UseDotNet@2
+            displayName: 'Use .NET SDK 10.0.x'
             inputs:
-              version: 2.2.103
+              packageType: sdk
+              version: 10.0.x
 
           - script: dotnet tool install --global coverlet.console
             displayName: 'Install coverlet'

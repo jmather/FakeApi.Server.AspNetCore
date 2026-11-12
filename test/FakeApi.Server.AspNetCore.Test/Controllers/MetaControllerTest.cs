@@ -130,7 +130,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
         private void SetupRegisterCall()
         {
             _controller.Request.Method = HttpMethods.Post;
-            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, MetaController.FakeApiAction.Register.ToString());
+            _controller.Request.Headers[MetaController.FakeApiActionHeader] = MetaController.FakeApiAction.Register.ToString();
         }
 
         private User SetupRecordCall()
@@ -138,7 +138,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             var user = default(User);
             
             _controller.Request.Method = HttpMethods.Put;
-            _controller.Request.Headers.Add(MetaController.FakeApiActionHeader, MetaController.FakeApiAction.Record.ToString());
+            _controller.Request.Headers[MetaController.FakeApiActionHeader] = MetaController.FakeApiAction.Record.ToString();
 
             return user;
         }
