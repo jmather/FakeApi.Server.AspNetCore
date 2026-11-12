@@ -58,7 +58,7 @@ namespace FakeApi.Server.AspNetCore.Controllers
         {
             foreach (var (key, value) in response.Headers)
             {
-                HttpContext.Response.Headers.Add(key, value);
+                HttpContext.Response.Headers[key] = value;
             }
 
             return new ContentResult

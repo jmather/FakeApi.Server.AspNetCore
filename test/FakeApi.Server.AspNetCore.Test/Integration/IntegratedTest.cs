@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using FakeApi.Server.AspNetCore;
 using FakeApi.Server.AspNetCore.Controllers;
 using FakeApi.Server.AspNetCore.Models;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -18,11 +19,11 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace FakeApi.Server.AspNetCore.Test.Integration
 {
-    public class IntegratedTest : IClassFixture<WebApplicationFactory<Startup>>
+    public class IntegratedTest : IClassFixture<WebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<Startup> _factory;
+        private readonly WebApplicationFactory<Program> _factory;
 
-        public IntegratedTest(WebApplicationFactory<Startup> factory)
+        public IntegratedTest(WebApplicationFactory<Program> factory)
         {
             _factory = factory;
         }
@@ -267,7 +268,8 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
             var content = File.ReadAllText("./Integration/test-endpoints.collection.yaml");
             var input = new StringReader(content);
             var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(new UnderscoredNamingConvention())
+                .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                .WithEnumNamingConvention(UnderscoredNamingConvention.Instance)
                 .Build();
 
             return deserializer.Deserialize<FakeEndpointCollection>(input);

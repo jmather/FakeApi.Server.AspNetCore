@@ -25,7 +25,7 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
         }
         
         [Fact]
-        public void TestMultipleAttemptsToGetUsers()
+        public async Task TestMultipleAttemptsToGetUsers()
         {
             var config = new UserRepository.Config();
             var callCount = 0;
@@ -47,7 +47,7 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
             var user1 = repo.Register(userInfo);
 
             // a little wait for a little code coverage... heh.
-            Task.Delay(100).Wait();
+            await Task.Delay(100);
             
             var user2 = repo.Register(userInfo);
             
