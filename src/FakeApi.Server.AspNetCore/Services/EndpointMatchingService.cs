@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using FakeApi.Server.AspNetCore.Exceptions;
-using FakeApi.Server.AspNetCore.Extensions;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Models;
 using Microsoft.AspNetCore.Http;
 
@@ -12,64 +13,68 @@ namespace FakeApi.Server.AspNetCore.Services
     {
         public async Task<FakeEndpoint> FindEndpointMatchingRequest(User user, HttpRequest request)
         {
-            var partialHash = request.GetPartialEndpointHash();
+            var outcome = await Find(user, request).ConfigureAwait(false);
+            if (outcome.Tie)
+            {
+                throw new MatchingTieException();
+            }
 
-            var possibleEndpoints = user.Endpoints
-                .Where(pair => pair.Key.StartsWith(partialHash))
-                .Select(pair => pair.Value)
+            return outcome.Endpoint;
+        }
+
+        public async Task<MatchOutcome> Find(User user, HttpRequest request)
+        {
+            var method = request.Method ?? string.Empty;
+            var path = request.Path.HasValue ? request.Path.Value : "/";
+            var body = RequestBodyText(request);
+            var possible = user.Endpoints.Values
+                .Where(endpoint => string.Equals(endpoint.Method.ToString(), method, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(endpoint.Path, path, StringComparison.Ordinal))
                 .ToList();
 
-            var matchingEndpoints = new List<ScoredEndpoint>();
-            var bestMatchEndpoints = new List<FakeEndpoint>();
-            var bestMatchCount = 0;
+            var best = new List<FakeEndpoint>();
+            var bestScore = 0;
+            var any = false;
 
-            foreach (var endpoint in possibleEndpoints)
+            foreach (var endpoint in possible)
             {
-                var scoredEndpoint = await CountEndpointMatches(request, endpoint);
-
-                if (scoredEndpoint == null)
+                var scored = Score(request, endpoint, body);
+                if (scored.HasValue == false)
                 {
                     continue;
                 }
 
-                matchingEndpoints.Add(scoredEndpoint);
-
-                if (bestMatchCount == scoredEndpoint.Score)
+                any = true;
+                if (best.Count == 0 || scored.Value > bestScore)
                 {
-                    bestMatchEndpoints.Add(endpoint);
+                    best = new List<FakeEndpoint> { endpoint };
+                    bestScore = scored.Value;
                 }
-                else if (bestMatchCount < scoredEndpoint.Score)
+                else if (scored.Value == bestScore)
                 {
-                    bestMatchEndpoints = new List<FakeEndpoint> { endpoint };
-                    bestMatchCount = scoredEndpoint.Score;
-                }
-                else if (bestMatchEndpoints.Count == 0)
-                {
-                    bestMatchEndpoints.Add(endpoint);
-                    bestMatchCount = scoredEndpoint.Score;
+                    best.Add(endpoint);
                 }
             }
 
-            if (bestMatchEndpoints.Count == 1)
+            if (any == false || best.Count == 0)
             {
-                return bestMatchEndpoints.First();
-            }
-            
-            if (bestMatchEndpoints.Count > 1)
-            {
-                throw new MultipleMatchException(bestMatchEndpoints, bestMatchCount, matchingEndpoints);
+                return new MatchOutcome();
             }
 
-            return null;
+            if (best.Count > 1)
+            {
+                return new MatchOutcome { Tie = true };
+            }
+
+            return new MatchOutcome { Endpoint = best[0] };
         }
-        
-        private async Task<ScoredEndpoint> CountEndpointMatches(HttpRequest request, FakeEndpoint endpoint)
+
+        private static int? Score(HttpRequest request, FakeEndpoint endpoint, string body)
         {
             var matches = 0;
-                
-            if (endpoint.Body != null)
+            if (endpoint.HasBody)
             {
-                if (endpoint.Body != await GetRequestBody(request))
+                if (endpoint.Body != body)
                 {
                     return null;
                 }
@@ -95,28 +100,92 @@ namespace FakeApi.Server.AspNetCore.Services
 
             matches += queryMatches.Value;
 
-            return new ScoredEndpoint(endpoint, matches);
+            return matches;
         }
 
         private static int? CountEndpointHeaderMatches(HttpRequest request, FakeEndpoint endpoint)
         {
-            var normalizedHeaders = request.Headers
-                .ToDictionary(k => k.Key.ToLower(), v => v.Value.ToString());
+            if (endpoint.Headers == null || endpoint.Headers.Count == 0)
+            {
+                return 0;
+            }
 
-            return normalizedHeaders.CountMatches(endpoint.Headers);
+            var matches = 0;
+            foreach (var required in endpoint.Headers)
+            {
+                var found = false;
+                foreach (var header in request.Headers)
+                {
+                    if (string.Equals(header.Key, required.Key, StringComparison.OrdinalIgnoreCase) == false)
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(header.Value.ToString(), required.Value, StringComparison.Ordinal) == false)
+                    {
+                        return null;
+                    }
+
+                    found = true;
+                    break;
+                }
+
+                if (found == false)
+                {
+                    return null;
+                }
+
+                matches++;
+            }
+
+            return matches;
         }
 
         private static int? CountEndpointQueryMatches(HttpRequest request, FakeEndpoint endpoint)
         {
-            var queryParams = request.Query
-                .ToDictionary(k => k.Key, v => v.Value.ToString());
+            if (endpoint.QueryParameters == null || endpoint.QueryParameters.Count == 0)
+            {
+                return 0;
+            }
 
-            return queryParams.CountMatches(endpoint.QueryParameters);
+            var matches = 0;
+            foreach (var required in endpoint.QueryParameters)
+            {
+                if (request.Query.TryGetValue(required.Key, out var actual) == false)
+                {
+                    return null;
+                }
+
+                if (string.Equals(actual.ToString(), required.Value, StringComparison.Ordinal) == false)
+                {
+                    return null;
+                }
+
+                matches++;
+            }
+
+            return matches;
         }
 
-        private async Task<string> GetRequestBody(HttpRequest request)
+        private static string RequestBodyText(HttpRequest request)
         {
-            return await request.GetRawBodyStringAsync();
+            if (request.HttpContext.Items.TryGetValue(RequestBodyItem.Key, out var value) && value is byte[] bytes)
+            {
+                return Encoding.UTF8.GetString(bytes);
+            }
+
+            return string.Empty;
+        }
+
+        public sealed class MatchOutcome
+        {
+            public FakeEndpoint Endpoint { get; set; }
+
+            public bool Tie { get; set; }
+        }
+
+        public sealed class MatchingTieException : Exception
+        {
         }
 
         public class ScoredEndpoint

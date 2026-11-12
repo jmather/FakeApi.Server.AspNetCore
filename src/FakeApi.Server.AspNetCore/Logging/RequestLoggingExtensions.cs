@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -15,7 +16,24 @@ namespace FakeApi.Server.AspNetCore.Logging
             {
                 RequestLogOptions.ApplyOverrides(options, builder.Configuration);
             });
-            builder.Services.AddSingleton<ILogRedactor, IdentityLogRedactor>();
+            if (string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_LOG_HOOK"), "prefix", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.Services.AddSingleton<ILogRedactor, PrefixLogRedactor>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<ILogRedactor, IdentityLogRedactor>();
+            }
+
+            if (string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_LOG_RECORD_HOOK"), "stamp", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.Services.AddSingleton<ILogRecordRedactor, StampLogRecordRedactor>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<ILogRecordRedactor, IdentityLogRecordRedactor>();
+            }
+
             builder.Services.AddSingleton<IRequestLogSink, RequestLogSink>();
             builder.Logging.AddFilter(RequestLogSink.Category, LogLevel.Information);
             // The default console logger already registers its own "json" formatter.

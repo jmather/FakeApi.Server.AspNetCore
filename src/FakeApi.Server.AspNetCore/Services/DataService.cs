@@ -21,9 +21,9 @@ namespace FakeApi.Server.AspNetCore.Services
             _endpointMatcher = endpointMatcher;
         }
 
-        public User Register(UserInfo userInfo)
+        public User Register(UserInfo userInfo, long nowMs)
         {
-            return _userRepository.Register(userInfo);
+            return _userRepository.Register(userInfo, nowMs);
         }
 
         public bool RecordEndpoint(string username, FakeEndpoint endpoint)

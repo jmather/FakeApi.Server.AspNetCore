@@ -10,38 +10,39 @@ namespace FakeApi.Server.AspNetCore.Logging
 
         public const string TruncationSuffix = "…[truncated]";
 
-        public static async Task<string> ReadCappedAsync(Stream stream)
+        public static async Task<byte[]> ReadAllAsync(Stream stream)
         {
-            var buffer = new byte[8192];
             using (var collected = new MemoryStream())
             {
-                var truncated = false;
-                while (collected.Length < MaxBytes)
-                {
-                    var want = (int)System.Math.Min(buffer.Length, MaxBytes - collected.Length);
-                    var read = await stream.ReadAsync(buffer, 0, want).ConfigureAwait(false);
-                    if (read == 0)
-                    {
-                        break;
-                    }
-
-                    collected.Write(buffer, 0, read);
-                    if (collected.Length >= MaxBytes)
-                    {
-                        var extra = await stream.ReadAsync(buffer, 0, 1).ConfigureAwait(false);
-                        truncated = extra > 0;
-                        break;
-                    }
-                }
-
-                var text = Encoding.UTF8.GetString(collected.ToArray());
-                if (truncated)
-                {
-                    text += TruncationSuffix;
-                }
-
-                return text;
+                await stream.CopyToAsync(collected).ConfigureAwait(false);
+                return collected.ToArray();
             }
+        }
+
+        public static string Format(byte[] data)
+        {
+            if (data == null || data.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (data.Length <= MaxBytes)
+            {
+                return Encoding.UTF8.GetString(data);
+            }
+
+            var prefix = new byte[MaxBytes];
+            System.Buffer.BlockCopy(data, 0, prefix, 0, MaxBytes);
+            var encoding = Encoding.GetEncoding(
+                "utf-8",
+                new EncoderReplacementFallback(string.Empty),
+                new DecoderReplacementFallback(string.Empty));
+            return encoding.GetString(prefix) + TruncationSuffix;
+        }
+
+        public static async Task<string> ReadCappedAsync(Stream stream)
+        {
+            return Format(await ReadAllAsync(stream).ConfigureAwait(false));
         }
     }
 }

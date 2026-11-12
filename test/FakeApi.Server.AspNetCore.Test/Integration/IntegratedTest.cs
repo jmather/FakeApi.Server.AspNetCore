@@ -179,6 +179,7 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
         {
             var settings = new JsonSerializerSettings
             {
+                NullValueHandling = NullValueHandling.Ignore,
                 ContractResolver = new DefaultContractResolver
                 {
                     NamingStrategy = new SnakeCaseNamingStrategy()
@@ -230,7 +231,13 @@ namespace FakeApi.Server.AspNetCore.Test.Integration
                 ExternalId = "test"
             };
 
-            var payload = JsonConvert.SerializeObject(userInfo);
+            var payload = JsonConvert.SerializeObject(userInfo, new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy()
+                }
+            });
             
             msg.Content = new StringContent(payload, Encoding.UTF8, "application/json");
 

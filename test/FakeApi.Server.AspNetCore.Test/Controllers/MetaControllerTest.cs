@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Controllers;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
@@ -35,7 +38,7 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
         }
 
         [Fact]
-        public void TestRegister()
+        public async Task TestRegister()
         {
             Setup();
             
@@ -55,76 +58,75 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
                 ExternalId = externalId,
             };
 
-            _dataService.Setup(o => o.Register(userInfo)).Returns(user);
+            _dataService.Setup(o => o.Register(It.IsAny<UserInfo>(), It.IsAny<long>())).Returns(user);
+            SetBody("{\"external_id\":\"test\"}");
 
-            var result = (CreatedResult) _controller.Register(userInfo);
+            await _controller.Register();
 
-            Assert.Equal(201, result.StatusCode);
-            Assert.Equal(_metaUri.ToString(), result.Location);
-            Assert.IsType<User>(result.Value);
+            Assert.Equal(201, _controller.Response.StatusCode);
+            Assert.Equal(_metaUri.ToString(), _controller.Response.Headers.Location.ToString());
         }
         
         [Fact]
-        public void TestRegisterFailsWithNoUserInfo()
+        public async Task TestRegisterFailsWithNoUserInfo()
         {
             Setup();
             
             SetupRegisterCall();
+            SetBody("");
             
-            var result = (BadRequestObjectResult) _controller.Register(null);
+            await _controller.Register();
 
-            Assert.Equal(400, result.StatusCode);
-            Assert.Equal("No User Information Provided", result.Value);
+            Assert.Equal(400, _controller.Response.StatusCode);
         }
         
         [Fact]
-        public void TestRecord()
-        {
-            Setup();
-            
-            var user = SetupRecordCall();
-
-            var endpoint = CreateExampleEndpoint();
-
-            _dataService
-                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), endpoint))
-                .Returns(true);
-            
-            var result = (CreatedResult) _controller.Record(endpoint);
-
-            Assert.Equal(201, result.StatusCode);
-            Assert.Equal(_metaUri.ToString(), result.Location);
-            Assert.IsType<FakeEndpoint>(result.Value);
-        }
-
-        [Fact]
-        public void TestRecordRequiresEndpoint()
+        public async Task TestRecord()
         {
             Setup();
             
             SetupRecordCall();
-            
-            var result = (BadRequestObjectResult) _controller.Record(null);
+            SetBody("{\"method\":\"get\",\"path\":\"/hello-world\",\"responses\":[{\"status\":200,\"content\":\"Hello World!\",\"content_type\":\"text/plain\"}]}");
 
-            Assert.Equal(400, result.StatusCode);
-            Assert.Equal("No Endpoint Provided", result.Value);
+            _dataService
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), It.IsAny<FakeEndpoint>()))
+                .Returns(true);
+            
+            await _controller.Record();
+
+            Assert.Equal(201, _controller.Response.StatusCode);
+            Assert.Equal(_metaUri.ToString(), _controller.Response.Headers.Location.ToString());
         }
-        
+
         [Fact]
-        public void TestRecordDoesNotLetYouRegisterAnEndpointTwice()
+        public async Task TestRecordRequiresEndpoint()
         {
             Setup();
             
-            var endpoint = CreateExampleEndpoint();
+            SetupRecordCall();
+            SetBody("");
+            
+            await _controller.Record();
+
+            Assert.Equal(400, _controller.Response.StatusCode);
+        }
+        
+        [Fact]
+        public async Task TestRecordDoesNotLetYouRegisterAnEndpointTwice()
+        {
+            Setup();
+            SetupRecordCall();
+            SetBody("{\"method\":\"get\",\"path\":\"/hello-world\",\"responses\":[{\"status\":200,\"content\":\"Hello World!\",\"content_type\":\"text/plain\"}]}");
 
             _dataService
-                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), endpoint))
+                .Setup(ds => ds.RecordEndpoint(It.IsAny<string>(), It.IsAny<FakeEndpoint>()))
                 .Returns(false);
             
-            var result = (ConflictObjectResult) _controller.Record(endpoint);
+            var result = await _controller.Record();
 
-            Assert.Equal(409, result.StatusCode);
-            Assert.Equal("Matching endpoint already recorded.", result.Value);
+            var content = (ContentResult) result;
+            Assert.Equal(409, content.StatusCode);
+            Assert.Equal("Conflict", content.Content);
         }
 
         private void SetupRegisterCall()
@@ -143,6 +145,11 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             return user;
         }
         
+        private void SetBody(string json)
+        {
+            _controller.HttpContext.Items[RequestBodyItem.Key] = Encoding.UTF8.GetBytes(json);
+        }
+
         private static FakeEndpoint CreateExampleEndpoint()
         {
             return new FakeEndpoint

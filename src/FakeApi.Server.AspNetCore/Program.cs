@@ -1,10 +1,13 @@
 ﻿using FakeApi.Server.AspNetCore.Handlers;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Logging;
 using FakeApi.Server.AspNetCore.Repositories;
+using FakeApi.Server.AspNetCore.Schema;
 using FakeApi.Server.AspNetCore.Services;
 using JMather.RoutingHelpers.AspNetCore.Conventions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,9 +43,9 @@ namespace FakeApi.Server.AspNetCore
                 });
             }
 
-            builder.Services.AddCors();
-
-            builder.Services.AddSingleton<IUserRepository, UserRepository>();
+            var clock = ServerClock.FromEnvironment();
+            builder.Services.AddSingleton(clock);
+            builder.Services.AddSingleton<IUserRepository>(_ => new UserRepository(UserRepository.Config.FromEnvironment()));
             builder.Services.AddSingleton<IDataService, DataService>();
             builder.Services.AddSingleton<IEndpointMatchingService, EndpointMatchingService>();
 
@@ -75,15 +78,23 @@ namespace FakeApi.Server.AspNetCore
                 app.UseHsts();
             }
 
-            // Reflect the request origin. AllowAnyOrigin cannot be combined with credentials.
-            app.UseCors(x => x
-                .SetIsOriginAllowed(_ => true)
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials());
+            app.UseMiddleware<GateMiddleware>();
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.MapGet("/fake-api-schema.json", async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                context.Response.Headers["Content-Type"] = PlainResponses.JsonContentType;
+                await context.Response.Body.WriteAsync(SchemaAssets.SchemaJson);
+            });
+            app.MapGet("/fake-api.openapi.yaml", async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                context.Response.Headers["Content-Type"] = "application/yaml";
+                await context.Response.Body.WriteAsync(SchemaAssets.OpenApiYaml);
+            });
 
             app.MapControllers();
 

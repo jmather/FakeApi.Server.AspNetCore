@@ -77,14 +77,15 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
         {
             var repo = new UserRepository();
             var user = repo.Register(new UserInfo { ExternalId = "active" });
-            var stale = DateTime.Now.AddHours(-1);
-            user.LastActivityAt = stale;
+            var stale = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (60 * 60 * 1000);
+            user.LastActivityAtMs = stale;
 
-            Assert.Null(await repo.Authenticate(user.Username, user.Password + "no"));
-            Assert.Equal(stale, user.LastActivityAt);
+            Assert.Null(await repo.Authenticate(user.Username, user.Password + "no", stale));
+            Assert.Equal(stale, user.LastActivityAtMs);
 
-            Assert.Equal(user, await repo.Authenticate(user.Username, user.Password));
-            Assert.True(user.LastActivityAt > stale);
+            var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Assert.Equal(user, await repo.Authenticate(user.Username, user.Password, now));
+            Assert.True(user.LastActivityAtMs > stale);
         }
 
         [Fact]
@@ -93,7 +94,7 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
             var config = new UserRepository.Config();
             
             config.CleanupInterval = TimeSpan.FromMilliseconds(100);
-            config.MaxInactivity = TimeSpan.FromMilliseconds(3000);
+            config.MaxIdle = TimeSpan.FromMilliseconds(3000);
             
             var repo = new UserRepository(config);
             
@@ -104,7 +105,7 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
 
             var user = repo.Register(userInfo);
 
-            user.LastActivityAt = DateTime.Now.AddMilliseconds(-300);
+            user.LastActivityAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - 300;
 
             await Task.Delay(500);
             

@@ -4,9 +4,11 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -36,11 +38,23 @@ namespace FakeApi.Server.AspNetCore.Handlers
             try 
             {
                 var authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
-                var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
-                var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':');
-                var username = credentials[0];
-                var password = credentials[1];
-                user = await _userRepository.Authenticate(username, password);
+                if (authHeader.Scheme.Equals("Basic", StringComparison.OrdinalIgnoreCase) == false
+                    && authHeader.Scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase) == false)
+                {
+                    return AuthenticateResult.Fail("Unsupported Authorization Scheme");
+                }
+
+                var credentialBytes = Convert.FromBase64String(authHeader.Parameter ?? string.Empty);
+                var decoded = Encoding.UTF8.GetString(credentialBytes);
+                var split = decoded.IndexOf(':');
+                if (split < 0)
+                {
+                    return AuthenticateResult.Fail("Invalid Authorization Header");
+                }
+
+                var username = decoded.Substring(0, split);
+                var password = decoded.Substring(split + 1);
+                user = await _userRepository.Authenticate(username, password, ServerClock.Current(Context));
             } 
             catch 
             {
@@ -60,6 +74,15 @@ namespace FakeApi.Server.AspNetCore.Handlers
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
             return AuthenticateResult.Success(ticket);
+        }
+
+        protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
+        {
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            Response.Headers["WWW-Authenticate"] = "Basic realm=\"FakeAPI\"";
+            Response.Headers["Content-Type"] = PlainResponses.PlainContentType;
+            var body = Encoding.UTF8.GetBytes("Unauthorized");
+            await Response.Body.WriteAsync(body).ConfigureAwait(false);
         }
     }
 }

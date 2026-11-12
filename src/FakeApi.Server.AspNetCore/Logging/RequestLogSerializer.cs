@@ -190,7 +190,7 @@ namespace FakeApi.Server.AspNetCore.Logging
                 {
                     writer.WriteStartElement("header");
                     writer.WriteAttributeString("name", header.Key);
-                    writer.WriteString(header.Value ?? string.Empty);
+                    writer.WriteRaw(XmlEscape(header.Value));
                     writer.WriteEndElement();
                 }
             }
@@ -209,19 +209,57 @@ namespace FakeApi.Server.AspNetCore.Logging
         {
             writer.WriteStartElement("param");
             writer.WriteAttributeString("name", name ?? string.Empty);
-            writer.WriteString(value ?? string.Empty);
+            writer.WriteRaw(XmlEscape(value));
             writer.WriteEndElement();
         }
 
         private static void WriteTextElement(XmlWriter writer, string name, string value)
         {
             writer.WriteStartElement(name);
-            if (string.IsNullOrEmpty(value) == false)
+            writer.WriteRaw(XmlEscape(value));
+            writer.WriteEndElement();
+        }
+
+        private static string XmlEscape(string value)
+        {
+            if (string.IsNullOrEmpty(value))
             {
-                writer.WriteString(value);
+                return string.Empty;
             }
 
-            writer.WriteEndElement();
+            var builder = new StringBuilder(value.Length);
+            foreach (var character in value)
+            {
+                switch (character)
+                {
+                    case '&':
+                        builder.Append("&amp;");
+                        break;
+                    case '<':
+                        builder.Append("&lt;");
+                        break;
+                    case '>':
+                        builder.Append("&gt;");
+                        break;
+                    case '"':
+                        builder.Append("&quot;");
+                        break;
+                    case '\'':
+                        builder.Append("&apos;");
+                        break;
+                    case '\r':
+                        builder.Append("&#xD;");
+                        break;
+                    case '\n':
+                        builder.Append("&#xA;");
+                        break;
+                    default:
+                        builder.Append(character);
+                        break;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private static string FormatDuration(double durationMs)

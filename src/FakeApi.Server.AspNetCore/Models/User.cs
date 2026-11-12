@@ -26,14 +26,14 @@ namespace FakeApi.Server.AspNetCore.Models
         }
 
         [JsonIgnore]
-        public DateTime LastActivityAt { get; set; } = DateTime.Now;
+        public long LastActivityAtMs { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         [JsonIgnore]
         public ConcurrentDictionary<string, FakeEndpoint> Endpoints { get; set; } = new ConcurrentDictionary<string, FakeEndpoint>();
 
         public bool RecordEndpoint(FakeEndpoint fakeEndpoint)
         {
-            var hash = fakeEndpoint.GetHash();
+            var hash = fakeEndpoint.IdentityKey();
 
             return Endpoints.TryAdd(hash, fakeEndpoint);
         }
