@@ -1,4 +1,5 @@
 ﻿using FakeApi.Server.AspNetCore.Handlers;
+using FakeApi.Server.AspNetCore.Logging;
 using FakeApi.Server.AspNetCore.Repositories;
 using FakeApi.Server.AspNetCore.Services;
 using JMather.RoutingHelpers.AspNetCore.Conventions;
@@ -58,11 +59,15 @@ namespace FakeApi.Server.AspNetCore
                     };
                 });
 
+            builder.AddFakeApiRequestLogging();
+
             const string authenticationScheme = "BasicAuthentication";
             builder.Services.AddAuthentication(authenticationScheme)
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(authenticationScheme, _ => { });
 
             var app = builder.Build();
+
+            app.UseFakeApiRequestLogging();
 
             if (app.Environment.IsDevelopment() == false)
             {
