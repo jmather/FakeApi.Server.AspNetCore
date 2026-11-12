@@ -61,6 +61,7 @@ namespace FakeApi.Server.AspNetCore.Repositories
                 return Task.FromResult<User>(null);
             }
 
+            user.LastActivityAt = DateTime.Now;
             return Task.FromResult(user);
         }
 

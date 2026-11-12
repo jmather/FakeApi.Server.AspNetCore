@@ -73,6 +73,21 @@ namespace FakeApi.Server.AspNetCore.Test.Repositories
         }
 
         [Fact]
+        public async Task SuccessfulAuthenticationRefreshesLastActivity()
+        {
+            var repo = new UserRepository();
+            var user = repo.Register(new UserInfo { ExternalId = "active" });
+            var stale = DateTime.Now.AddHours(-1);
+            user.LastActivityAt = stale;
+
+            Assert.Null(await repo.Authenticate(user.Username, user.Password + "no"));
+            Assert.Equal(stale, user.LastActivityAt);
+
+            Assert.Equal(user, await repo.Authenticate(user.Username, user.Password));
+            Assert.True(user.LastActivityAt > stale);
+        }
+
+        [Fact]
         public async Task TestUserPurging()
         {
             var config = new UserRepository.Config();
