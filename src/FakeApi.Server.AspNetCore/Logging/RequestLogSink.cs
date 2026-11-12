@@ -10,26 +10,56 @@ namespace FakeApi.Server.AspNetCore.Logging
 
         private readonly ILogger _logger;
         private readonly ILogRedactor _redactor;
+        private readonly ILogRecordRedactor _recordRedactor;
         private readonly IOptions<RequestLogOptions> _options;
         private readonly object _xmlGate = new object();
 
-        public RequestLogSink(ILoggerFactory loggerFactory, ILogRedactor redactor, IOptions<RequestLogOptions> options)
+        public RequestLogSink(
+            ILoggerFactory loggerFactory,
+            ILogRedactor redactor,
+            ILogRecordRedactor recordRedactor,
+            IOptions<RequestLogOptions> options)
         {
             _logger = loggerFactory.CreateLogger(Category);
             _redactor = redactor;
+            _recordRedactor = recordRedactor;
             _options = options;
         }
 
         public void Write(RequestLogRecord record)
         {
-            var json = RequestLogSerializer.ToJson(record);
-            var redactedJson = _redactor.Redact(json, "json");
-            _logger.Log(
-                LogLevelFor(record.Status),
-                new EventId(1, "RequestCompleted"),
-                redactedJson,
-                null,
-                static (state, _) => state);
+            try
+            {
+                record = _recordRedactor.Redact(record);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (record == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var json = RequestLogSerializer.ToJson(record);
+                var redactedJson = _redactor.Redact(json, "json");
+                if (redactedJson != null)
+                {
+                    _logger.Log(
+                        LogLevelFor(record.Status),
+                        new EventId(1, "RequestCompleted"),
+                        redactedJson,
+                        null,
+                        static (state, _) => state);
+                }
+            }
+            catch
+            {
+                // A failing string hook skips this sink and leaves the response alone.
+            }
 
             var path = _options.Value.LogXmlPath;
             if (string.IsNullOrWhiteSpace(path))
@@ -37,17 +67,29 @@ namespace FakeApi.Server.AspNetCore.Logging
                 return;
             }
 
-            var xml = RequestLogSerializer.ToXml(record);
-            var redactedXml = _redactor.Redact(xml, "xml");
-            lock (_xmlGate)
+            try
             {
-                var directory = Path.GetDirectoryName(path);
-                if (string.IsNullOrEmpty(directory) == false)
+                var xml = RequestLogSerializer.ToXml(record);
+                var redactedXml = _redactor.Redact(xml, "xml");
+                if (redactedXml == null)
                 {
-                    Directory.CreateDirectory(directory);
+                    return;
                 }
 
-                File.AppendAllText(path, redactedXml + "\n");
+                lock (_xmlGate)
+                {
+                    var directory = Path.GetDirectoryName(path);
+                    if (string.IsNullOrEmpty(directory) == false)
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    File.AppendAllText(path, redactedXml + "\n");
+                }
+            }
+            catch
+            {
+                // A failing string hook skips this sink and leaves the response alone.
             }
         }
 

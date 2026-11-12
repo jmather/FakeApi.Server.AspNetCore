@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using FakeApi.Server.AspNetCore.Exceptions;
+using Microsoft.AspNetCore.Http;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Models;
 using FakeApi.Server.AspNetCore.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -30,35 +31,41 @@ namespace FakeApi.Server.AspNetCore.Controllers
         {
             try
             {
-                var response = await _dataService.GetEndpointResponse(User.Identity.Name, Request);
+                var response = await _dataService.GetEndpointResponse(User.Identity?.Name, Request);
 
-                return response == null ? NotFound() : EndpointResponse(response);
+                return response == null
+                    ? Text(StatusCodes.Status404NotFound, "Not Found")
+                    : EndpointResponse(response);
             }
-            catch (MultipleMatchException e)
+            catch (EndpointMatchingService.MatchingTieException)
             {
-                return Error(e);
+                return Text(StatusCodes.Status409Conflict, "Conflict");
             }
         }
 
-        private static IActionResult Error(Exception e)
+        private static ContentResult Text(int status, string body)
         {
-            var details = new ErrorDetails
+            return new ContentResult
             {
-                Message = e.Message,
-                Data = e.Data,
-            };
-
-            return new ObjectResult(details)
-            {
-                StatusCode = 500,
+                StatusCode = status,
+                Content = body,
+                ContentType = PlainResponses.PlainContentType,
             };
         }
 
         private IActionResult EndpointResponse(FakeEndpointResponse response)
         {
-            foreach (var (key, value) in response.Headers)
+            if (response.Headers != null)
             {
-                HttpContext.Response.Headers[key] = value;
+                foreach (var header in response.Headers)
+                {
+                    if (IsHopHeader(header.Key))
+                    {
+                        continue;
+                    }
+
+                    HttpContext.Response.Headers[header.Key] = header.Value;
+                }
             }
 
             return new ContentResult
@@ -67,6 +74,13 @@ namespace FakeApi.Server.AspNetCore.Controllers
                 Content = response.Content,
                 ContentType = response.ContentType,
             };
+        }
+
+        private static bool IsHopHeader(string name)
+        {
+            return string.Equals(name, "content-length", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "transfer-encoding", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "content-type", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using FakeApi.Server.AspNetCore.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
@@ -28,13 +29,11 @@ namespace FakeApi.Server.AspNetCore.Logging
             var captureBodies = capture == LogCaptureMode.All;
             var started = Stopwatch.StartNew();
 
-            string requestBody = null;
-            if (captureBodies)
-            {
-                context.Request.EnableBuffering();
-                requestBody = await RequestLogBody.ReadCappedAsync(context.Request.Body).ConfigureAwait(false);
-                context.Request.Body.Position = 0;
-            }
+            context.Request.EnableBuffering();
+            var requestBytes = await RequestLogBody.ReadAllAsync(context.Request.Body).ConfigureAwait(false);
+            context.Items[RequestBodyItem.Key] = requestBytes;
+            context.Request.Body.Position = 0;
+            var requestBody = captureBodies ? RequestLogBody.Format(requestBytes) : null;
 
             var originalResponseBody = context.Response.Body;
             MemoryStream responseBuffer = null;
@@ -57,7 +56,7 @@ namespace FakeApi.Server.AspNetCore.Logging
                     {
                         context.Response.Body = originalResponseBody;
                         responseBuffer.Position = 0;
-                        responseBody = await RequestLogBody.ReadCappedAsync(responseBuffer).ConfigureAwait(false);
+                        responseBody = RequestLogBody.Format(responseBuffer.ToArray());
                         responseBuffer.Position = 0;
                         await responseBuffer.CopyToAsync(originalResponseBody).ConfigureAwait(false);
                     }

@@ -31,7 +31,7 @@ namespace FakeApi.Server.AspNetCore.Logging
                 RequestId = requestId,
                 Method = context.Request.Method ?? string.Empty,
                 Path = context.Request.Path.HasValue ? context.Request.Path.Value : "/",
-                Query = QueryOf(context.Request.Query),
+                Query = QueryOf(context.Request),
                 Status = status,
                 DurationMs = Math.Round(elapsed.TotalMilliseconds, 3, MidpointRounding.AwayFromZero),
                 Action = HeaderOrNull(context.Request.Headers, "X-FakeApi-Action"),
@@ -98,25 +98,47 @@ namespace FakeApi.Server.AspNetCore.Logging
             return dict;
         }
 
-        private static Dictionary<string, object> QueryOf(IQueryCollection query)
+        private static Dictionary<string, object> QueryOf(HttpRequest request)
         {
             var dict = new Dictionary<string, object>(StringComparer.Ordinal);
-            foreach (var pair in query.OrderBy(q => q.Key, StringComparer.Ordinal))
+            var raw = request.QueryString.HasValue ? request.QueryString.Value : string.Empty;
+            if (raw.StartsWith("?", StringComparison.Ordinal))
             {
-                if (pair.Value.Count > 1)
-                {
-                    var values = new string[pair.Value.Count];
-                    for (var i = 0; i < pair.Value.Count; i++)
-                    {
-                        values[i] = pair.Value[i];
-                    }
+                raw = raw.Substring(1);
+            }
 
-                    dict[pair.Key] = values;
-                }
-                else
+            if (raw.Length == 0)
+            {
+                return dict;
+            }
+
+            var grouped = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            var order = new List<string>();
+            foreach (var part in raw.Split('&'))
+            {
+                if (part.Length == 0)
                 {
-                    dict[pair.Key] = pair.Value.ToString();
+                    continue;
                 }
+
+                var split = part.IndexOf('=');
+                var rawKey = split >= 0 ? part.Substring(0, split) : part;
+                var rawValue = split >= 0 ? part.Substring(split + 1) : string.Empty;
+                var key = Uri.UnescapeDataString(rawKey.Replace("+", " "));
+                if (grouped.TryGetValue(key, out var values) == false)
+                {
+                    values = new List<string>();
+                    grouped[key] = values;
+                    order.Add(key);
+                }
+
+                values.Add(rawValue);
+            }
+
+            foreach (var key in order)
+            {
+                var values = grouped[key];
+                dict[key] = values.Count == 1 ? (object)values[0] : values.ToArray();
             }
 
             return dict;

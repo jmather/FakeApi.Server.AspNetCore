@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 using FakeApi.Server.AspNetCore.Logging;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -19,70 +21,42 @@ namespace FakeApi.Server.AspNetCore.Test.Logging
     public class CursedSecretsTests
     {
         [SkippableFact]
-        public async Task CorpusValuesDoNotAppearVerbatimWhenCaptureIsOn()
+        public async Task CorpusValuesDoNotAppearInDecodedLogs()
         {
-            // Identity hook on purpose. This fails until a real redactor is registered.
+            // Identity hooks on purpose. This fails until a real redactor is registered.
             Skip.IfNot(string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_CURSED"), "1", StringComparison.Ordinal));
 
-            var strictSecretIsh = string.Equals(
-                Environment.GetEnvironmentVariable("FAKEAPI_CURSED_SECRETISH"),
-                "strict",
-                StringComparison.OrdinalIgnoreCase);
+            var strict = string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_CURSED_STRICT"), "1", StringComparison.Ordinal);
             var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cursed-secrets.json");
             using (var document = JsonDocument.Parse(File.ReadAllText(fixturePath)))
             {
                 var entries = document.RootElement.GetProperty("entries").EnumerateArray().Select(Copy).ToList();
-                var xmlPath = Path.Combine(Path.GetTempPath(), "fakeapi-cursed-" + Guid.NewGuid().ToString("N") + ".xml");
-                var lines = new List<string>();
-                try
+                var report = new StringBuilder();
+                var hardMisses = 0;
+                var softMisses = 0;
+                foreach (var mode in new[] { "string", "object", "both" })
                 {
-                    using (var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-                    {
-                        builder.ConfigureAppConfiguration((_, config) =>
-                        {
-                            config.AddInMemoryCollection(new Dictionary<string, string>
-                            {
-                                [RequestLogOptions.CaptureEnvironmentVariable] = "all",
-                                [RequestLogOptions.XmlPathEnvironmentVariable] = xmlPath,
-                            });
-                        });
-                        builder.ConfigureLogging(logging => logging.AddProvider(new ListLoggerProvider(lines)));
-                    }))
-                    using (var client = factory.CreateClient())
-                    {
-                        await Register(client);
-                        foreach (var entry in entries)
-                        {
-                            await Exercise(client, entry);
-                        }
-                    }
-
-                    var json = string.Join("\n", lines);
-                    var xml = File.Exists(xmlPath) ? File.ReadAllText(xmlPath) : string.Empty;
-                    var grouped = new StringBuilder();
-                    var hardMisses = 0;
-                    var softMisses = 0;
+                    report.AppendLine("mode=" + mode);
+                    var outcome = await RunMode(entries, mode).ConfigureAwait(false);
                     foreach (var sensitivity in new[] { "definitely", "likely", "secret-ish" })
                     {
-                        grouped.AppendLine(sensitivity);
-                        foreach (var entry in entries.Where(e => e.Sensitivity == sensitivity))
+                        report.AppendLine(sensitivity);
+                        foreach (var entry in entries.Where(item => item.Sensitivity == sensitivity))
                         {
                             if (string.IsNullOrEmpty(entry.Value))
                             {
-                                grouped.AppendLine("  PASS " + entry.Id + " (empty)");
+                                report.AppendLine("  PASS " + entry.Id + " (empty)");
                                 continue;
                             }
 
-                            var inJson = json.Contains(entry.Value);
-                            var inXml = xml.Contains(entry.Value);
-                            if (inJson == false && inXml == false)
+                            var where = outcome(entry.Value);
+                            if (where == null)
                             {
-                                grouped.AppendLine("  PASS " + entry.Id);
+                                report.AppendLine("  PASS " + entry.Id);
                                 continue;
                             }
 
-                            var where = inJson && inXml ? "json+xml" : inJson ? "json" : "xml";
-                            grouped.AppendLine("  FAIL " + entry.Id + " (" + where + ")");
+                            report.AppendLine("  FAIL " + entry.Id + " (" + where + ")");
                             if (sensitivity == "secret-ish")
                             {
                                 softMisses++;
@@ -93,22 +67,200 @@ namespace FakeApi.Server.AspNetCore.Test.Logging
                             }
                         }
                     }
-
-                    var report = grouped.ToString();
-                    Assert.True(hardMisses == 0, report);
-                    if (strictSecretIsh)
-                    {
-                        Assert.True(softMisses == 0, report);
-                    }
                 }
-                finally
+
+                var text = report.ToString();
+                Assert.True(hardMisses == 0, text);
+                if (strict)
                 {
-                    if (File.Exists(xmlPath))
-                    {
-                        File.Delete(xmlPath);
-                    }
+                    Assert.True(softMisses == 0, text);
                 }
             }
+        }
+
+        private static async Task<Func<string, string>> RunMode(List<Entry> entries, string mode)
+        {
+            var xmlPath = Path.Combine(Path.GetTempPath(), "fakeapi-cursed-" + Guid.NewGuid().ToString("N") + ".xml");
+            var lines = new List<string>();
+            try
+            {
+                using (var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+                {
+                    builder.ConfigureAppConfiguration((_, config) =>
+                    {
+                        config.AddInMemoryCollection(new Dictionary<string, string>
+                        {
+                            [RequestLogOptions.CaptureEnvironmentVariable] = "all",
+                            [RequestLogOptions.XmlPathEnvironmentVariable] = xmlPath,
+                        });
+                    });
+                    builder.ConfigureLogging(logging => logging.AddProvider(new ListLoggerProvider(lines)));
+                    builder.ConfigureTestServices(services =>
+                    {
+                        services.RemoveAll<ILogRedactor>();
+                        services.RemoveAll<ILogRecordRedactor>();
+                        services.AddSingleton(StringHook(mode));
+                        services.AddSingleton(ObjectHook(mode));
+                    });
+                }))
+                using (var client = factory.CreateClient())
+                {
+                    await Register(client).ConfigureAwait(false);
+                    foreach (var entry in entries)
+                    {
+                        await Exercise(client, entry).ConfigureAwait(false);
+                    }
+                }
+
+                var xml = File.Exists(xmlPath) ? File.ReadAllText(xmlPath) : string.Empty;
+                var capturedLines = lines.ToList();
+                return secret =>
+                {
+                    var inJson = capturedLines.Any(line => JsonContains(line, secret));
+                    var inXml = XmlContains(xml, secret);
+                    if (inJson == false && inXml == false)
+                    {
+                        return null;
+                    }
+
+                    return inJson && inXml ? "json+xml" : inJson ? "json" : "xml";
+                };
+            }
+            finally
+            {
+                if (File.Exists(xmlPath))
+                {
+                    File.Delete(xmlPath);
+                }
+            }
+        }
+
+        private static ILogRedactor StringHook(string mode)
+        {
+            if (mode == "object")
+            {
+                return new IdentityLogRedactor();
+            }
+
+            return string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_LOG_HOOK"), "prefix", StringComparison.OrdinalIgnoreCase)
+                ? (ILogRedactor)new PrefixLogRedactor()
+                : new IdentityLogRedactor();
+        }
+
+        private static ILogRecordRedactor ObjectHook(string mode)
+        {
+            if (mode == "string")
+            {
+                return new IdentityLogRecordRedactor();
+            }
+
+            return string.Equals(Environment.GetEnvironmentVariable("FAKEAPI_LOG_RECORD_HOOK"), "stamp", StringComparison.OrdinalIgnoreCase)
+                ? (ILogRecordRedactor)new StampLogRecordRedactor()
+                : new IdentityLogRecordRedactor();
+        }
+
+        private static bool JsonContains(string line, string secret)
+        {
+            var payload = line.StartsWith("[json]", StringComparison.Ordinal) ? line.Substring(6) : line;
+            try
+            {
+                using (var document = JsonDocument.Parse(payload))
+                {
+                    return WalkJson(document.RootElement, secret);
+                }
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+        }
+
+        private static bool WalkJson(JsonElement element, string secret)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var property in element.EnumerateObject())
+                    {
+                        if (property.Name.Contains(secret, StringComparison.Ordinal) || WalkJson(property.Value, secret))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                case JsonValueKind.Array:
+                    foreach (var item in element.EnumerateArray())
+                    {
+                        if (WalkJson(item, secret))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                case JsonValueKind.String:
+                    return (element.GetString() ?? string.Empty).Contains(secret, StringComparison.Ordinal);
+                default:
+                    return element.ToString().Contains(secret, StringComparison.Ordinal);
+            }
+        }
+
+        private static bool XmlContains(string xml, string secret)
+        {
+            foreach (var line in xml.Split('\n'))
+            {
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+
+                var payload = line.StartsWith("[xml]", StringComparison.Ordinal) ? line.Substring(5) : line;
+                try
+                {
+                    var root = System.Xml.Linq.XDocument.Parse(payload).Root;
+                    if (WalkXml(root, secret))
+                    {
+                        return true;
+                    }
+                }
+                catch (System.Xml.XmlException)
+                {
+                }
+            }
+
+            return false;
+        }
+
+        private static bool WalkXml(System.Xml.Linq.XElement element, string secret)
+        {
+            if (element == null)
+            {
+                return false;
+            }
+
+            foreach (var attribute in element.Attributes())
+            {
+                if ((attribute.Value ?? string.Empty).Contains(secret, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var node in element.Nodes())
+            {
+                if (node is System.Xml.Linq.XText text && (text.Value ?? string.Empty).Contains(secret, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (node is System.Xml.Linq.XElement child && WalkXml(child, secret))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static async Task Register(HttpClient client)

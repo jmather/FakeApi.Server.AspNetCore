@@ -110,6 +110,8 @@ The record uses these fields: `timestamp`, `level`, `msg`, `server`, `request_id
 
 Environment variables win over `appsettings`. With nothing set, bodies and headers are not written.
 
+`FAKEAPI_CLOCK=manual` reads `X-FakeApi-Now` as unix epoch milliseconds and purges idle users at the start of each request instead of on the background sweep. `FAKEAPI_MAX_IDLE_MS` defaults to `7200000`. `FAKEAPI_PURGE_INTERVAL_MS` defaults to `900000`. A user remains valid at the exact idle boundary.
+
 The XML sink appends one `<request-log>` element per request, newline-delimited, written with `XmlWriter`. It stays off unless a path is set.
 
 ```bash
@@ -125,4 +127,8 @@ builder.Services.AddSingleton<ILogRedactor, MyRedactor>();
 
 Register the replacement after `AddFakeApiRequestLogging`, or remove the default descriptor first, so the container injects one implementation.
 
-`test/FakeApi.Server.AspNetCore.Test/Fixtures/cursed-secrets.json` is the shared corpus. `CursedSecretsTests` is skipped unless `FAKEAPI_CURSED=1`. It uses the identity hook, so it is expected to fail until a real redactor is installed. Entries whose `parts` are an array are concatenated at runtime. `FAKEAPI_CURSED_SECRETISH=strict` also fails the run when a `secret-ish` value is still present; otherwise those misses are reported and do not fail the test by themselves.
+Before serialization, `ILogRecordRedactor.Redact` can change the record object. `FAKEAPI_LOG_RECORD_HOOK=stamp` appends ` [stamped]` to `msg`. After each sink serializes, `ILogRedactor` still runs. `FAKEAPI_LOG_HOOK=prefix` prefixes `[json]` or `[xml]`. Both default to identity. A hook that throws skips that write and does not fail the HTTP response.
+
+`dotnet run -c Release --project src/FakeApi.ConformanceRunner` runs the vendored `conformance/` suite against a live server. Do not edit that directory; `SHA256SUMS` must match.
+
+`test/FakeApi.Server.AspNetCore.Test/Fixtures/cursed-secrets.json` is the shared corpus. `CursedSecretsTests` is skipped unless `FAKEAPI_CURSED=1`. It runs three modes (string hook, object hook, and both), parses the JSON and XML, and searches decoded values. The placeholder hooks are identity, so the test is expected to fail until a redactor is installed with `FAKEAPI_LOG_HOOK` and/or `FAKEAPI_LOG_RECORD_HOOK`. `FAKEAPI_CURSED_STRICT=1` also fails the run when a `secret-ish` value is still present.

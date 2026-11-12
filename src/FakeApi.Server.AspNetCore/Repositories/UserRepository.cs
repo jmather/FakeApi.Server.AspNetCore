@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FakeApi.Server.AspNetCore.Http;
 using FakeApi.Server.AspNetCore.Models;
 
 namespace FakeApi.Server.AspNetCore.Repositories
@@ -23,9 +24,18 @@ namespace FakeApi.Server.AspNetCore.Repositories
         public UserRepository(Config config)
         {
             _config = config ?? new Config();
+            if (_config.ManualClock)
+            {
+                _runCleanup = false;
+            }
         }
 
         public User Register(UserInfo userInfo)
+        {
+            return Register(userInfo, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        }
+
+        public User Register(UserInfo userInfo, long nowMs)
         {
             EnsureCleanupTaskIsStarted();
             
@@ -37,7 +47,8 @@ namespace FakeApi.Server.AspNetCore.Repositories
             }
 
             user.Password = _config.GuidGenerator();
-            user.ExternalId = userInfo.ExternalId ?? _config.GuidGenerator();
+            user.ExternalId = userInfo.ExternalId ?? string.Empty;
+            user.LastActivityAtMs = nowMs;
 
             return user;
         }
@@ -54,6 +65,11 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
         public Task<User> Authenticate(string username, string password)
         {
+            return Authenticate(username, password, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        }
+
+        public Task<User> Authenticate(string username, string password, long nowMs)
+        {
             var user = Get(username);
 
             if (user == null || user.Password != password)
@@ -61,8 +77,19 @@ namespace FakeApi.Server.AspNetCore.Repositories
                 return Task.FromResult<User>(null);
             }
 
-            user.LastActivityAt = DateTime.Now;
+            user.LastActivityAtMs = nowMs;
             return Task.FromResult(user);
+        }
+
+        public void Purge(long nowMs)
+        {
+            foreach (var pair in _users)
+            {
+                if (pair.Value.LastActivityAtMs < nowMs - _config.MaxIdle.Ticks / TimeSpan.TicksPerMillisecond)
+                {
+                    _users.TryRemove(pair.Key, out _);
+                }
+            }
         }
 
         public async Task StopCleanup()
@@ -103,9 +130,9 @@ namespace FakeApi.Server.AspNetCore.Repositories
 
             foreach (var pair in _users)
             {
-                if (pair.Value.LastActivityAt + _config.MaxInactivity < DateTime.Now)
+                if (pair.Value.LastActivityAtMs < DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - _config.MaxIdle.Ticks / TimeSpan.TicksPerMillisecond)
                 {
-                    _users.TryRemove(pair.Key, out var oldUser);
+                    _users.TryRemove(pair.Key, out _);
                 }
             }
         }
@@ -126,9 +153,22 @@ namespace FakeApi.Server.AspNetCore.Repositories
         {
             public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromMinutes(15);
 
-            public TimeSpan MaxInactivity { get; set; } = TimeSpan.FromHours(2);
+            public TimeSpan MaxIdle { get; set; } = TimeSpan.FromHours(2);
+
+            public bool ManualClock { get; set; }
 
             public Func<string> GuidGenerator { get; set; } = () => Guid.NewGuid().ToString();
+
+            public static Config FromEnvironment()
+            {
+                var clock = ServerClock.FromEnvironment();
+                return new Config
+                {
+                    ManualClock = clock.Manual,
+                    MaxIdle = TimeSpan.FromMilliseconds(clock.MaxIdleMs),
+                    CleanupInterval = TimeSpan.FromMilliseconds(clock.PurgeIntervalMs),
+                };
+            }
         }
     }
 }

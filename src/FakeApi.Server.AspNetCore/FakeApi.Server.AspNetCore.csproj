@@ -13,4 +13,9 @@
       <ProjectReference Include="..\JMather.RoutingHelpers.AspNetCore\JMather.RoutingHelpers.AspNetCore.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\..\conformance\assets\fake-api-schema.json" Link="assets\fake-api-schema.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+      <Content Include="..\..\conformance\assets\fake-api.openapi.yaml" Link="assets\fake-api.openapi.yaml" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

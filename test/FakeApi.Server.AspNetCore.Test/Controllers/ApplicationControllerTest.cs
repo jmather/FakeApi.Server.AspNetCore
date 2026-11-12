@@ -68,19 +68,14 @@ namespace FakeApi.Server.AspNetCore.Test.Controllers
             
             _controller.Request.Method = HttpMethods.Get;
 
-            var ex = new MultipleMatchException(new List<FakeEndpoint>(), 0, new List<EndpointMatchingService.ScoredEndpoint>());
-
             _dataService
                 .Setup(o => o.GetEndpointResponse(It.IsAny<string>(), _controller.Request))
-                .ThrowsAsync(ex);
+                .ThrowsAsync(new EndpointMatchingService.MatchingTieException());
 
-            var result = (ObjectResult) await _controller.HandleRequest();
+            var result = (ContentResult) await _controller.HandleRequest();
 
-            Assert.Equal(500, result.StatusCode);
-            Assert.IsType<ErrorDetails>(result.Value);
-            var details = (ErrorDetails) result.Value;
-            
-            Assert.Equal(MultipleMatchException.MessageText, details.Message);
+            Assert.Equal(409, result.StatusCode);
+            Assert.Equal("Conflict", result.Content);
         }
     }
 }
